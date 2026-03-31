@@ -8,11 +8,11 @@
 # =====================================================================
 # STEP 1: SPECIFY BASE IMAGE
 # =====================================================================
-# Start from official Python 3.7.16 image
-# This image has Python 3.7.16 pre-installed
+# Start from official Python 3.10 image
+# This image has Python 3.10 pre-installed
 # Alpine is a lightweight Linux distribution (~40MB vs 900MB)
 # Using Alpine keeps the image small and fast
-FROM python:3.7.16-slim
+FROM python:3.10-slim
 
 # =====================================================================
 # STEP 2: SET WORKING DIRECTORY
@@ -63,7 +63,7 @@ EXPOSE 5000
 ENV PYTHONUNBUFFERED=1
 
 # Set Flask to production mode
-ENV FLASK_ENV=production
+ENV FLASK_DEBUG=0
 
 # =====================================================================
 # STEP 8: DEFINE STARTUP COMMAND
