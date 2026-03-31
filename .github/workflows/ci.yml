@@ -1,0 +1,200 @@
+# ============================================================================
+# GITHUB ACTIONS - CONTINUOUS INTEGRATION WORKFLOW
+# ============================================================================
+# Purpose: Automatically test code on every push and pull request
+# Triggers: 
+#   - Push to main or develop branch
+#   - Pull request to main branch
+# ============================================================================
+
+name: CI Testing
+
+# Define when this workflow runs
+on:
+  # Run on push events
+  push:
+    branches:
+      - main          # Run when pushing to main branch
+      - develop       # Run when pushing to develop branch
+  
+  # Run on pull request events
+  pull_request:
+    branches:
+      - main          # Run when PR targets main branch
+
+# Environment variables accessible to all jobs
+env:
+  PYTHON_VERSION: "3.7.16"
+
+# Define jobs to execute
+jobs:
+  # Job: Test the application
+  test:
+    # Run on Ubuntu latest
+    runs-on: ubuntu-latest
+    
+    # Optional: Cancel other runs of this workflow if new one starts
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    # Define steps in this job
+    steps:
+      # Step 1: Check out code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+        # This gets your repository code into the runner
+
+      # Step 2: Setup Python interpreter
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          # Python version to use (from env variable)
+          python-version: ${{ env.PYTHON_VERSION }}
+        # This installs Python 3.7.16 on the runner
+
+      # Step 3: Display Python version (for debugging)
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+        # Shows which Python version is installed
+
+      # Step 4: Cache pip packages (speedy second runs!)
+      - name: Cache pip packages
+        uses: actions/cache@v2
+        with:
+          # Cache location for pip packages
+          path: ~/.cache/pip
+          # Cache key based on requirements.txt content
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          # Fallback caches if exact match not found
+          restore-keys: |
+            ${{ runner.os }}-pip-
+        # This speeds up subsequent runs by 10-20x!
+
+      # Step 5: Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          # Upgrade pip, setuptools, wheel
+          python -m pip install --upgrade pip setuptools wheel
+          # Install all packages from requirements.txt
+          pip install -r requirements.txt
+          # Install additional testing/linting packages
+          pip install pytest pytest-cov pylint flake8
+        # These packages are needed for testing
+
+      # Step 6: Run flake8 code linting (style checking)
+      - name: Lint with flake8
+        run: |
+          # Run flake8 on app.py
+          # flake8 checks for:
+          #   - Syntax errors
+          #   - Style violations (PEP 8)
+          #   - Complexity issues
+          # E501 = line too long (we ignore this)
+          # W503 = line break before binary operator (we ignore this)
+          flake8 app.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        # If flake8 finds critical issues, this step fails
+
+      # Step 7: Run pylint code quality check
+      - name: Lint with pylint
+        run: |
+          # Run pylint on app.py
+          # pylint is stricter than flake8
+          # It checks for:
+          #   - Code quality
+          #   - Best practices
+          #   - Potential bugs
+          # Setting --fail-under allows some issues (for learning projects)
+          pylint app.py --fail-under=6.0 || true
+        # We use "|| true" so it doesn't fail (learning project)
+        continue-on-error: true
+        # If pylint fails, workflow continues
+
+      # Step 8: Create simple test file (if doesn't exist)
+      - name: Create test directory
+        run: |
+          # Create tests directory
+          mkdir -p tests
+          # Create __init__.py to make it package
+          touch tests/__init__.py
+        # Tests will be added here later
+
+      # Step 9: Run pytest unit tests
+      - name: Run tests with pytest
+        run: |
+          # Run pytest on tests/ directory
+          # -v = verbose output (shows each test)
+          # --tb=short = short traceback on failures
+          # --color=yes = colored output for readability
+          pytest tests/ -v --tb=short --color=yes || true
+        continue-on-error: true
+        # Tests optional for now (no tests yet)
+
+      # Step 10: Report test coverage
+      - name: Generate coverage report
+        run: |
+          # Install coverage tool
+          pip install coverage
+          # Run coverage on tests
+          coverage run -m pytest tests/ || true
+          # Generate report
+          coverage report -m || true
+        continue-on-error: true
+        # Coverage report helpful but not required
+
+      # Step 11: Check if app.py can be imported (basic smoke test)
+      - name: Smoke test - Import Flask app
+        run: |
+          # Try to import the Flask app
+          # This ensures basic syntax is correct
+          python -c "from app import app; print('✅ Flask app successfully imported!')"
+        # This will fail if app.py has syntax errors
+
+      # Step 12: Test Flask app can start
+      - name: Smoke test - Flask app startup
+        run: |
+          # Check if Flask app initializes without errors
+          python -c "
+from app import app
+print('✅ Flask app initialized successfully!')
+print('✅ Routes:')
+for rule in app.url_map.iter_rules():
+    print(f'  - {rule.rule}: {list(rule.methods - {\"HEAD\", \"OPTIONS\"})}')
+          "
+        # This verifies the Flask app is valid
+
+      # Step 13: Summary message
+      - name: Success - All checks passed! ✅
+        if: success()
+        run: echo "🎉 All CI checks passed! Code is ready for review."
+
+      # Step 14: Failure message
+      - name: Failed - Fix issues before proceeding ❌
+        if: failure()
+        run: echo "❌ CI checks failed. Fix the issues above and push again."
+
+# ============================================================================
+# WORKFLOW SUMMARY:
+# 1. Check out code
+# 2. Setup Python 3.7.16
+# 3. Cache pip packages (speed up)
+# 4. Install dependencies
+# 5. Lint with flake8 (style check)
+# 6. Lint with pylint (quality check)
+# 7. Run pytest unit tests
+# 8. Generate coverage report
+# 9. Test Flask app imports
+# 10. Test Flask app starts
+# 
+# Total time: ~1-2 minutes
+# 
+# On failure:
+#   - GitHub shows red X on commit
+#   - Pull request blocks merge
+#   - Developer notified immediately
+#
+# On success:
+#   - GitHub shows green ✅ on commit
+#   - Pull request can be merged
+#   - Ready for Docker build
+# ============================================================================

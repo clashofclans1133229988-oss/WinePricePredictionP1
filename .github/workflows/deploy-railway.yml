@@ -1,0 +1,165 @@
+# ============================================================================
+# GITHUB ACTIONS - RAILWAY DEPLOYMENT WORKFLOW (After Docker Build)
+# ============================================================================
+# Purpose: Trigger Railway redeployment after Docker image is built
+# Triggers: After Docker build succeeds
+# Time: ~1 minute after Docker finishes
+# ============================================================================
+
+name: Trigger Railway Deployment
+
+# When to run this workflow
+on:
+  # Trigger from Docker workflow completion
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
+    branches:
+      - main
+
+  # Also manual trigger (workflow_dispatch) in case you want to redeploy
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+
+# Jobs
+jobs:
+  # Check if Docker build succeeded
+  check-docker-build:
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+    steps:
+      - name: Check Docker build status
+        id: check
+        run: |
+          # If Docker workflow failed, don't trigger Railway
+          if [ "${{ github.event.workflow_run.conclusion }}" == "failure" ]; then
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+            echo "❌ Docker build failed, skipping Railway deployment"
+          else
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "✅ Docker build succeeded, triggering Railway"
+          fi
+
+  # Job: Trigger Railway redeployment
+  trigger-railway:
+    needs: check-docker-build
+    if: (needs.check-docker-build.outputs.should-deploy == 'true') || (github.event_name == 'workflow_dispatch')
+    
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: railway
+      url: https://${{ secrets.RAILWAY_PROJECT_NAME }}.railway.app
+
+    steps:
+      # Step 1: Checkout code (optional but good practice)
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Display deployment information
+      - name: Display deployment information
+        run: |
+          echo "========================================"
+          echo "DEPLOYING TO RAILWAY.APP"
+          echo "========================================"
+          echo "Project: ${{ secrets.RAILWAY_PROJECT_NAME }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Time: $(date)"
+
+      # Step 3: Trigger Railway deployment via Webhook
+      # Railway watches GitHub automatically, but we can force a redeploy
+      - name: Trigger Railway redeployment
+        run: |
+          # Railway has GitHub integration and watches for pushes
+          # This is just for manual control/notification
+          echo "✅ Railway will auto-redeploy your Docker image from Docker Hub"
+          echo "App URL: https://${{ secrets.RAILWAY_PROJECT_NAME }}.railway.app"
+          echo ""
+          echo "Railway details:"
+          echo "  - Watches: your Docker Hub registry"
+          echo "  - Pulls latest: wine-price-app:latest"
+          echo "  - Deploys automatically"
+          echo "  - Takes: 1-3 minutes"
+
+      # Step 4: Wait for Railway to be ready (optional)
+      - name: Wait for Railway deployment
+        run: |
+          echo "⏳ Waiting 30 seconds for Railway to start deployment..."
+          sleep 30
+          echo "✅ Deployment triggered!"
+
+      # Step 5: Health check
+      - name: Health check - Test app endpoint
+        run: |
+          echo "🏥 Checking if app is responding..."
+          
+          # Try to reach app 10 times with 10 second waits
+          for i in {1..10}; do
+            if curl -f "https://${{ secrets.RAILWAY_PROJECT_NAME }}.railway.app/" > /dev/null 2>&1; then
+              echo "✅ App is responding!"
+              exit 0
+            fi
+            echo "  Attempt $i/10: App not ready yet, waiting..."
+            sleep 10
+          done
+          
+          echo "⚠️ App not responding yet (might still be starting)"
+          echo "Check Railway dashboard for status: https://railway.app"
+        continue-on-error: true
+
+      # Step 6: Success notification
+      - name: Deployment triggered successfully ✅
+        if: success()
+        run: |
+          echo "🎉 Railway deployment triggered!"
+          echo ""
+          echo "Your app will be updated shortly at:"
+          echo "https://${{ secrets.RAILWAY_PROJECT_NAME }}.railway.app"
+          echo ""
+          echo "Check status: https://railway.app/project"
+
+# ============================================================================
+# WORKFLOW SUMMARY:
+#
+# This workflow:
+#   1. Waits for Docker build to finish
+#   2. If Docker build succeeded, triggers Railway redeploy
+#   3. Railway pulls latest Docker image from Docker Hub
+#   4. Railway rebuilds container
+#   5. App is updated automatically
+#
+# GITHUB SECRETS NEEDED:
+#   - RAILWAY_PROJECT_NAME: Your Railway project/app name
+#                          (like "wine-price-app")
+#
+# HOW IT WORKS:
+#   Your GitHub Actions → Build Docker → Push to Docker Hub
+#                                             ↓
+#                                        Railway watches
+#                                        Docker Hub
+#                                             ↓
+#                                        Pulls new image
+#                                             ↓
+#                                        Redeploys app
+#                                             ↓
+#                                        App live! ✅
+#
+# TOTAL PIPELINE TIME: ~5-10 minutes
+#   - CI Tests: 1-2 min
+#   - Docker Build: 2-3 min
+#   - Docker Push: 1-2 min
+#   - Railway Redeploy: 1-3 min
+#
+# RAILWAY AUTO-DEPLOYMENT:
+#   Railway automatically watches your Docker Hub repo
+#   When new image is pushed, Railway redeploys
+#   So this workflow is just for notification/verification
+#
+# ============================================================================

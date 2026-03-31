@@ -1,0 +1,699 @@
+================================================================================
+🚀 GITHUB ACTIONS SETUP GUIDE FOR YOUR PROJECT
+================================================================================
+
+STEP-BY-STEP SETUP INSTRUCTIONS
+
+This guide walks you through setting up GitHub Actions for your Wine Price
+Prediction app. Follow each step carefully.
+
+================================================================================
+📚 PART 1: INITIAL PROJECT SETUP
+================================================================================
+
+STEP 1: ENSURE YOUR PROJECT IS ON GITHUB
+──────────────────────────────────────────
+
+You need a GitHub repository for GitHub Actions to work.
+
+If you don't have a GitHub repository yet:
+  1. Go to https://github.com/new
+  2. Create new repository
+  3. Name: wine-price-prediction
+  4. Make it public or private (your choice)
+  5. Initialize with README
+  6. Click "Create repository"
+
+If you already have one:
+  ✓ Great! Continue to next step
+
+STEP 2: PUSH YOUR FILES TO GITHUB
+─────────────────────────────────
+
+Navigate to your project directory in terminal:
+  $ cd path/to/WinePricePredictionP1
+
+Initialize Git if not already:
+  $ git init
+  $ git remote add origin https://github.com/username/wine-price-prediction.git
+  $ git branch -M main
+
+Stage all files:
+  $ git add .
+
+Commit files:
+  $ git commit -m "Initial commit: Add wine prediction app with workflows"
+
+Push to GitHub:
+  $ git push -u origin main
+
+Verify on GitHub:
+  └─ Visit: https://github.com/username/wine-price-prediction
+
+STEP 3: VERIFY WORKFLOW FILES ARE PRESENT
+──────────────────────────────────────────
+
+On GitHub, check file structure:
+  ✓ .github/workflows/ci.yml (testing)
+  ✓ .github/workflows/docker.yml (Docker build)
+  ✓ .github/workflows/deploy.yml (Heroku deployment)
+
+If folders/files not showing:
+  └─ Push changes again: git push
+
+================================================================================
+📚 PART 2: CREATE GITHUB SECRETS
+================================================================================
+
+GitHub Secrets are encrypted environment variables. GitHub Actions workflows
+access them, but they're hidden from logs.
+
+HOW TO CREATE SECRETS:
+──────────────────────
+
+1. Go to your GitHub repository
+2. Click "Settings" tab (top navigation)
+3. Left sidebar: Click "Secrets and variables" → "Actions"
+4. Click "New repository secret" button
+5. Enter secret name and value
+6. Click "Add secret"
+7. Repeat for all secrets
+
+REQUIRED SECRETS FOR YOUR PROJECT:
+──────────────────────────────────
+
+SECRET 1: DOCKER_USERNAME
+──────────────────────────
+What it is:
+  └─ Your Docker Hub username
+
+Where to get it:
+  1. Log in to https://hub.docker.com
+  2. Click your profile icon (top right)
+  3. Click "Account Settings"
+  4. Your username is displayed
+
+How to add:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: DOCKER_USERNAME
+  4. Value: your-docker-username (exactly as on Docker Hub)
+  5. Click "Add secret"
+
+Example:
+  If your Docker Hub username is "john.doe"
+  Then value = "john.doe"
+
+SECRET 2: DOCKER_PASSWORD
+──────────────────────────
+What it is:
+  └─ Docker Hub authentication token (safer than password)
+
+⚠️ IMPORTANT: Use Access Token, NOT your Docker Hub password!
+  └─ Passwords are less secure, tokens are revocable
+
+How to create Docker Hub Access Token:
+  1. Log in to https://hub.docker.com
+  2. Click your profile icon → "Account Settings"
+  3. Left sidebar: Click "Security" or "Personal access tokens"
+  4. Click "Create access token" or "Generate new token"
+  5. Name it: "github-actions" or similar
+  6. Permissions: Read & Write (or just Read if available)
+  7. Copy the token
+  8. Save it somewhere safe!
+  9. ⚠️ This token won't show again!
+
+How to add to GitHub:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: DOCKER_PASSWORD
+  4. Value: (paste your Docker Hub access token)
+  5. Click "Add secret"
+
+Example token format:
+  dckr_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+SECRET 3: HEROKU_API_KEY
+────────────────────────
+What it is:
+  └─ Your Heroku authentication key
+
+How to create:
+  1. Log in to https://dashboard.heroku.com
+  2. Click your profile icon (top right)
+  3. Click "Account settings"
+  4. Scroll down to "API Key" section
+  5. Click "Reveal" or "Generate new..."
+  6. Copy the API key
+  7. Save it somewhere safe!
+
+How to add to GitHub:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: HEROKU_API_KEY
+  4. Value: (paste your Heroku API key)
+  5. Click "Add secret"
+
+Example format:
+  a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6
+
+SECRET 4: HEROKU_EMAIL
+───────────────────────
+What it is:
+  └─ Your Heroku account email
+
+How to add:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: HEROKU_EMAIL
+  4. Value: your-email@example.com
+  5. Click "Add secret"
+
+Example:
+  john@example.com
+
+SECRET 5: HEROKU_APP_NAME
+──────────────────────────
+What it is:
+  └─ The name of your Heroku app
+
+How to create Heroku app:
+  1. Go to https://dashboard.heroku.com
+  2. Click "Create new app"
+  3. App name: wine-price-app (or your choice)
+  4. Region: United States or Europe
+  5. Click "Create app"
+  6. Copy the app name
+
+How to add to GitHub:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: HEROKU_APP_NAME
+  4. Value: your-app-name (e.g., wine-price-app)
+  5. Click "Add secret"
+
+Example:
+  wine-price-app
+
+OPTIONAL SECRET: SLACK_WEBHOOK
+────────────────────────────────
+What it is:
+  └─ Webhook URL for Slack notifications (optional)
+
+Skip this if you don't use Slack!
+
+How to create:
+  1. Create Slack app on https://api.slack.com/apps
+  2. Create Incoming Webhook
+  3. Post webhook URL to channel
+  4. Copy webhook URL
+
+How to add:
+  1. GitHub Settings → Secrets and variables → Actions
+  2. "New repository secret"
+  3. Name: SLACK_WEBHOOK
+  4. Value: https://hooks.slack.com/services/...
+  5. Click "Add secret"
+
+VERIFY ALL SECRETS ADDED:
+─────────────────────────
+
+Go to GitHub Settings → Secrets and variables → Actions
+
+You should see these secrets:
+  ✓ DOCKER_USERNAME
+  ✓ DOCKER_PASSWORD
+  ✓ HEROKU_API_KEY
+  ✓ HEROKU_EMAIL
+  ✓ HEROKU_APP_NAME
+  ✓ (Optional) SLACK_WEBHOOK
+
+================================================================================
+📚 PART 3: ENABLE GITHUB ACTIONS
+================================================================================
+
+GitHub Actions should be enabled by default, but verify:
+
+1. Go to your repository
+2. Click "Actions" tab (top navigation)
+3. You should see "Workflows" section
+
+If you see message "Actions is disabled":
+  1. Go to Settings tab
+  2. Left sidebar: Actions → General
+  3. Choose: "Allow all actions and reusable workflows"
+  4. Click "Save"
+
+================================================================================
+📚 PART 4: CONFIGURE BRANCH PROTECTION
+================================================================================
+
+This ensures bad code doesn't merge to main branch.
+
+Setup:
+  1. Go to Settings → Branches
+  2. Under "Branch protection rules" click "Add rule"
+  3. Pattern: main
+  4. Check: "Require a pull request before merging"
+  5. Check: "Require status checks to pass before merging"
+  6. Check: "CI Testing" workflow
+  7. Check: (optional) "Build and Push Docker Image"
+  8. Click "Create"
+
+Result:
+  ├─ Can't push directly to main
+  ├─ Must create pull request
+  ├─ Workflows must pass
+  ├─ Code review required
+  └─ Main branch stays clean!
+
+================================================================================
+📚 PART 5: FIRST RUN - TEST CI WORKFLOW
+================================================================================
+
+STEP 1: CREATE A TEST BRANCH
+──────────────────────────────
+
+Make a simple change to test workflow:
+
+Command: git checkout -b test/workflow
+         vi app.py (make tiny change, like add comment)
+         git add app.py
+         git commit -m "Test: workflow testing"
+         git push origin test/workflow
+
+STEP 2: OPEN PULL REQUEST
+──────────────────────────
+
+On GitHub:
+  1. You should see banner suggesting "Create pull request"
+  2. Click "Create pull request"
+  3. Add title: "Test: GitHub Actions CI workflow"
+  4. Add description: "Testing CI workflow"
+  5. Click "Create pull request"
+
+STEP 3: WATCH CI WORKFLOW RUN
+──────────────────────────────
+
+On the pull request page:
+  1. Scroll down to "Checks" section
+  2. Watch "CI Testing" workflow run
+  3. It shows:
+     ├─ ⏳ Running... (in progress)
+     ├─ Then ✅ Passed (all tests passed)
+     ├─ Or ❌ Failed (errors to fix)
+
+STEP 4: VIEW DETAILED LOGS
+───────────────────────────
+
+Click "CI Testing" to expand:
+  ├─ Shows each step
+  ├─ Click step to see logs
+  ├─ Logs show what happened
+  ├─ Errors show why it failed
+  └─ Use to debug
+
+STEP 5: MERGE AFTER CI PASSES
+──────────────────────────────
+
+Once CI passes (✅):
+  1. Click "Squash and merge" or "Merge pull request"
+  2. Confirm merge
+  3. Delete branch
+  4. Done!
+
+STEP 6: WATCH DOCKER WORKFLOW (OPTIONAL)
+──────────────────────────────────────────
+
+After merging to main:
+  1. Go back to repository
+  2. Click "Actions" tab
+  3. Watch "Build and Push Docker Image" workflow
+  4. It will:
+     ├─ Checkout code
+     ├─ Build Docker image
+     ├─ Push to Docker Hub
+     ├─ Scan for vulnerabilities
+
+View on Docker Hub:
+  └─ https://hub.docker.com/r/your-username/wine-price-app
+
+STEP 7: WATCH DEPLOYMENT WORKFLOW (OPTIONAL)
+──────────────────────────────────────────────
+
+After Docker build succeeds:
+  1. "Deploy to Heroku" workflow starts
+  2. Pushes code to Heroku
+  3. Heroku builds and deploys
+  4. App becomes live!
+
+Test deployed app:
+  └─ Visit: https://your-app-name.herokuapp.com
+
+================================================================================
+📚 PART 6: UNDERSTANDING WORKFLOW STATUS
+================================================================================
+
+What different status indicators mean:
+
+ON PULL REQUEST:
+───────────────
+
+✅ All checks passed
+  └─ Safe to merge
+  └─ Click "Merge pull request"
+
+❌ Some checks failed
+  └─ Fix errors first
+  └─ Push fixes
+  └─ Workflow re-runs automatically
+  └─ When all pass, then merge
+
+⏳ Checks in progress
+  └─ Still running, wait...
+  └─ Takes 1-5 minutes
+  └─ Don't merge yet
+
+⊘ Checks skipped
+  └─ Workflow didn't run
+  └─ Check workflow settings
+  └─ Might be disabled
+
+DETAILED STATUS:
+────────────────
+
+Click workflow name to see:
+  ├─ Which steps are running/passed/failed
+  ├─ Logs for each step
+  ├─ Errors with full details
+  ├─ Duration of each step
+  └─ Environment variables used
+
+ERROR HANDLING:
+───────────────
+
+If workflow fails:
+  1. Click failed workflow
+  2. Scroll to failed step
+  3. Read error message
+  4. Fix issue
+  5. Commit and push
+  6. Workflow runs again
+
+Common issues:
+  ├─ Missing pip packages → Add to requirements.txt
+  ├─ Code syntax errors → Fix Python code
+  ├─ Missing secrets → Add to GitHub Secrets
+  ├─ Wrong secret value → Verify in Secrets
+  └─ Docker login failed → Check Docker Hub token
+
+================================================================================
+📚 PART 7: MANAGING WORKFLOW RUNS
+================================================================================
+
+VIEW ALL WORKFLOW RUNS:
+───────────────────────
+
+On GitHub:
+  1. Click "Actions" tab
+  2. See all workflows
+  3. Each shows:
+     ├─ Status (✅ or ❌)
+     ├─ When it ran
+     ├─ Duration
+     ├─ Which commit triggered it
+     └─ Click to see details
+
+CANCEL A RUNNING WORKFLOW:
+──────────────────────────
+
+If you want to stop a workflow:
+  1. Click running workflow
+  2. Click "Cancel workflow" button
+  3. Workflow stops immediately
+
+DELETE WORKFLOW RUNS:
+─────────────────────
+
+To clean up old runs:
+  1. Click workflow
+  2. Right side: three dots menu
+  3. Click "Delete workflow run"
+  4. Confirm
+
+DOWNLOAD ARTIFACTS:
+────────────────────
+
+Some workflows might save files:
+  1. Click workflow run
+  2. Scroll down to "Artifacts"
+  3. Click download to get files
+
+RERUN A WORKFLOW:
+──────────────────
+
+To run a past workflow again:
+  1. Click workflow
+  2. Click "Re-run jobs" button
+  3. Choose "Re-run all jobs"
+  4. Workflow runs with same code
+
+================================================================================
+📚 PART 8: WORKFLOW SCHEDULE (OPTIONAL)
+================================================================================
+
+You can schedule workflows to run automatically (like cron jobs).
+
+Example: Nightly tests
+
+Edit .github/workflows/ci.yml:
+
+  on:
+    push:
+      branches: [main, develop]
+    pull_request:
+      branches: [main]
+    schedule:
+      # Run at 2 AM UTC every day
+      - cron: '0 2 * * *'
+
+Cron syntax:
+  minute hour day month day-of-week
+
+More examples:
+  ├─ '0 2 * * *' = 2 AM every day
+  ├─ '0 */6 * * *' = Every 6 hours
+  ├─ '0 0 * * 1' = Every Monday at midnight
+  ├─ '30 1 * * *' = 1:30 AM every day
+  └─ '0 0 1 * *' = 1st of month at midnight
+
+================================================================================
+📚 PART 9: MONITORING & NOTIFICATIONS
+================================================================================
+
+GITHUB NOTIFICATIONS:
+─────────────────────
+
+GitHub sends emails:
+  ├─ When workflow fails
+  ├─ When PR blocked by checks
+  ├─ When deployment completes
+
+View in:
+  └─ GitHub Notifications (bell icon)
+
+BRANCH PROTECTION STATUS:
+──────────────────────────
+
+On pull request:
+  ├─ Shows which checks required
+  ├─ Shows which checks passed/failed
+  ├─ Shows if safe to merge
+  └─ Shows required approvals
+
+STATUS BADGES IN README:
+──────────────────────────
+
+Add to your README.md:
+
+  ```markdown
+  ![CI Testing](https://github.com/username/wine-price-prediction/workflows/CI%20Testing/badge.svg)
+  ```
+
+This displays badge showing:
+  ├─ Green if all tests passing
+  ├─ Red if any test failing
+  ├─ Clickable to Actions page
+  └─ Visitors see project health
+
+SLACK NOTIFICATIONS:
+─────────────────────
+
+If you configured SLACK_WEBHOOK:
+  ├─ Get Slack messages on deployment
+  ├─ See success/failure status
+  ├─ Get links to app
+  ├─ Works automatically
+
+================================================================================
+📚 PART 10: COMMON SETUP ISSUES & SOLUTIONS
+================================================================================
+
+ISSUE 1: "Secrets not found" error
+───────────────────────────────────
+
+Error message:
+  Docker username is empty
+
+Fix:
+  1. Go to Settings → Secrets and variables
+  2. Verify all 5 secrets are added
+  3. Check secret names exactly match:
+     ├─ DOCKER_USERNAME
+     ├─ DOCKER_PASSWORD
+     ├─ HEROKU_API_KEY
+     ├─ HEROKU_EMAIL
+     └─ HEROKU_APP_NAME
+  4. Re-add any missing secrets
+
+ISSUE 2: Workflow doesn't run
+──────────────────────────────
+
+Causes:
+  ├─ Workflow file has YAML syntax error
+  ├─ File path wrong (not .github/workflows/)
+  ├─ GitHub Actions disabled
+  ├─ Branch protection blocking it
+
+Fix:
+  1. Check workflow file YAML syntax (use online validator)
+  2. Verify file in .github/workflows/ directory
+  3. Go to Settings → Actions → Ensure enabled
+  4. Check branch protection rules
+
+ISSUE 3: "Authentication failed" in Docker step
+──────────────────────────────────────────────
+
+Cause:
+  ├─ Wrong Docker Hub credentials
+  ├─ Token expired
+  ├─ Typo in username/password
+
+Fix:
+  1. Verify DOCKER_USERNAME and DOCKER_PASSWORD
+  2. Recreate Docker Hub access token
+  3. Update GitHub Secrets with new token
+  4. Re-run workflow
+
+ISSUE 4: "Heroku app not found" error
+──────────────────────────────────────
+
+Cause:
+  ├─ Wrong HEROKU_APP_NAME
+  ├─ App deleted
+  ├─ Heroku API key invalid
+
+Fix:
+  1. Verify Heroku app exists
+  2. Go to https://dashboard.heroku.com
+  3. Copy exact app name
+  4. Update HEROKU_APP_NAME secret
+  5. Verify HEROKU_API_KEY is current
+
+ISSUE 5: Pull request won't merge despite passing checks
+──────────────────────────────────────────────────────────
+
+Cause:
+  ├─ Missing required approvals
+  ├─ Branch protection rule
+  ├─ Admin restriction
+
+Fix:
+  1. Ask code reviewer to approve
+  2. Check Settings → Branches → Protection rules
+  3. Ensure all required conditions met
+
+================================================================================
+📚 QUICK REFERENCE - WORKFLOW FILES CREATED
+================================================================================
+
+FILE 1: .github/workflows/ci.yml
+─────────────────────────────────
+
+Purpose: Test code quality and functionality
+Triggers: Every push/PR to main
+Duration: 1-2 minutes
+Does:
+  ├─ Lint code (flake8, pylint)
+  ├─ Run tests (pytest)
+  ├─ Generate coverage
+  ├─ Import check
+  └─ Startup verification
+
+FILE 2: .github/workflows/docker.yml
+────────────────────────────────────
+
+Purpose: Build and push Docker image
+Triggers: Push to main, version tags
+Duration: 2-5 minutes
+Does:
+  ├─ Build Docker image
+  ├─ Tag with version/commit
+  ├─ Push to Docker Hub
+  ├─ Security scan
+  └─ Trigger deployment
+
+FILE 3: .github/workflows/deploy.yml
+─────────────────────────────────────
+
+Purpose: Deploy to Heroku
+Triggers: Main branch, manual
+Duration: 3-5 minutes
+Does:
+  ├─ Deploy to Heroku
+  ├─ Wait for app to start
+  ├─ Health checks
+  ├─ View logs
+  └─ Slack notification
+
+================================================================================
+🎯 FINAL CHECKLIST
+================================================================================
+
+Before running workflows, ensure:
+
+PROJECT SETUP:
+  ☐ Project on GitHub
+  ☐ All files pushed (.github/workflows/*.yml)
+
+SECRETS CONFIGURED:
+  ☐ DOCKER_USERNAME
+  ☐ DOCKER_PASSWORD (access token)
+  ☐ HEROKU_API_KEY
+  ☐ HEROKU_EMAIL
+  ☐ HEROKU_APP_NAME
+
+EXTERNAL ACCOUNTS:
+  ☐ Docker Hub account created
+  ☐ Docker Hub access token created
+  ☐ Heroku account created
+  ☐ Heroku app created
+  ☐ Heroku API key copied
+
+GITHUB SETUP:
+  ☐ GitHub Actions enabled
+  ☐ Branch protection configured
+  ☐ Workflow files in correct location
+
+All set? Go test it!
+  1. Make a small change
+  2. Push to feature branch
+  3. Create pull request
+  4. Watch CI run
+  5. Merge to main
+  6. Watch Docker build
+  7. App automatically deployed!
+
+DONE! 🎉🚀🍷
+
+================================================================================

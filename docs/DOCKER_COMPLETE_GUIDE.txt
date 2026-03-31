@@ -1,0 +1,1220 @@
+================================================================================
+🐳 COMPLETE DOCKER & DOCKER COMPOSE GUIDE - A TO Z
+================================================================================
+
+COMPREHENSIVE TUTORIAL FOR BEGINNERS
+
+This guide covers:
+1. What is Docker?
+2. Why use Docker?
+3. Docker concepts and terminology
+4. What is Docker Compose?
+5. How to install Docker
+6. Complete Docker commands
+7. Real-world examples
+8. Troubleshooting
+
+================================================================================
+📚 PART 1: WHAT IS DOCKER?
+================================================================================
+
+SIMPLE DEFINITION:
+──────────────────
+Docker is like a magical box that packages your application with everything
+it needs to run (code, libraries, Python, etc.) into one container.
+
+ANALOGY: THE SHIPPING CONTAINER
+─────────────────────────────────
+
+Traditional Software (Without Docker):
+┌─────────────────────────────────────────────────┐
+│ Problem: Dependency Hell                        │
+│                                                 │
+│ Developer's Machine:                            │
+│ ├─ Python 3.7.16 ✓                             │
+│ ├─ Flask 1.1.2 ✓                               │
+│ ├─ pandas 1.1.0 ✓                              │
+│ └─ App works perfectly! ✅                       │
+│                                                 │
+│ Server/Production:                              │
+│ ├─ Python 3.12 (too new!)                      │
+│ ├─ Flask 2.0 (incompatible!)                   │
+│ ├─ pandas 2.0 (broken!)                        │
+│ └─ App crashes! ❌                              │
+│                                                 │
+│ Classic phrase: "But it works on my machine!"   │
+└─────────────────────────────────────────────────┘
+
+With Docker (SHIPPING CONTAINER MODEL):
+┌─────────────────────────────────────────────────┐
+│ Solution: One Container for Everything          │
+│                                                 │
+│ Developer packages everything:                  │
+│ ┌─────────────────┐                            │
+│ │ DOCKER IMAGE:   │                            │
+│ ├─────────────────┤                            │
+│ │ Python 3.7.16   │                            │
+│ │ Flask 1.1.2     │                            │
+│ │ pandas 1.1.0    │                            │
+│ │ Your App Code   │                            │
+│ │ All Libraries   │                            │
+│ └─────────────────┘                            │
+│                                                 │
+│ Exactly same image runs everywhere:             │
+│ ├─ Your machine: Same container ✓              │
+│ ├─ Server: Same container ✓                    │
+│ ├─ Heroku: Same container ✓                    │
+│ ├─ Colleague's machine: Same container ✓       │
+│ └─ App works EVERYWHERE! ✅                     │
+└─────────────────────────────────────────────────┘
+
+KEY BENEFIT: "It works on my machine" → "It works everywhere"
+
+================================================================================
+📚 PART 2: DOCKER CORE CONCEPTS
+================================================================================
+
+CONCEPT 1: IMAGE
+────────────────
+What is it?
+  └─ A blueprint/template for creating containers
+  └─ Like a recipe or instruction manual
+  └─ Immutable (can't change after creation)
+
+Think of it like:
+  └─ Image = Class definition in programming
+  └─ Container = Instance of that class
+
+What it contains:
+  ├─ Operating system (Linux)
+  ├─ Python 3.7.16
+  ├─ All dependencies
+  ├─ Your application code
+  └─ Configuration files
+
+File size:
+  └─ Small (100MB - 1GB) compared to full VMs (10GB+)
+
+CONCEPT 2: CONTAINER
+────────────────────
+What is it?
+  └─ A running instance of a Docker image
+  └─ Lightweight alternative to virtual machines
+  └─ Isolated environment for your app
+
+Think of it like:
+  └─ Image = Restaurant recipe
+  └─ Container = Actual meal being prepared
+
+Properties:
+  ├─ Isolated (can't interfere with other apps)
+  ├─ Portable (runs anywhere)
+  ├─ Temporary (stops when you stop it)
+  └─ Reproducible (always same behavior)
+
+CONCEPT 3: DOCKERFILE
+─────────────────────
+What is it?
+  └─ A text file with instructions to build an image
+  └─ Like a script that automates setup
+
+Contains:
+  ├─ Base image to use (e.g., python:3.7.16)
+  ├─ Files to copy (your app code)
+  ├─ Dependencies to install (pip packages)
+  ├─ Ports to expose (5000)
+  ├─ Command to run (gunicorn)
+  └─ Environment variables
+
+Workflow:
+  Dockerfile → Build → Image → Run → Container
+
+CONCEPT 4: REGISTRY
+───────────────────
+What is it?
+  └─ A repository storing Docker images
+  └─ Like GitHub but for Docker images
+
+Popular registries:
+  ├─ Docker Hub (official, public)
+  ├─ GitHub Container Registry
+  ├─ Amazon ECR
+  ├─ Google Container Registry
+  └─ Private registries
+
+Examples:
+  ├─ Official Python: python:3.7.16
+  ├─ Official Node.js: node:18
+  ├─ Official Ubuntu: ubuntu:20.04
+  └─ Your image: your-docker-hub/wine-app:latest
+
+CONCEPT 5: VOLUMES
+──────────────────
+What is it?
+  └─ Persistent storage outside containers
+  └─ Data survives even when container stops
+
+Why needed:
+  ├─ Containers are temporary
+  ├─ Without volumes, data is lost when container stops
+  ├─ Databases need persistent storage
+  ├─ Log files need to persist
+
+Types:
+  ├─ Named volumes (managed by Docker)
+  ├─ Bind mounts (mounted from host machine)
+  └─ Tmpfs (temporary, in RAM)
+
+CONCEPT 6: NETWORKS
+───────────────────
+What is it?
+  └─ Communication between containers
+  └─ Like internal networking
+
+Use cases:
+  ├─ Web app container talks to database container
+  ├─ Frontend talks to backend
+  ├─ Multiple services communicating
+
+Default network: bridge
+
+================================================================================
+📚 PART 3: WHY USE DOCKER? BENEFITS
+================================================================================
+
+BENEFIT 1: Consistency
+──────────────────────
+Same environment everywhere:
+  ├─ Local machine: Works ✓
+  ├─ CI/CD pipeline: Works ✓
+  ├─ Production server: Works ✓
+  └─ Colleague's machine: Works ✓
+
+No "works on my machine" problems anymore!
+
+BENEFIT 2: Isolation
+────────────────────
+Apps don't interfere with each other:
+  ├─ App 1 uses Python 3.7
+  ├─ App 2 uses Python 3.11
+  ├─ App 3 uses Python 3.12
+  └─ All run simultaneously without conflicts!
+
+BENEFIT 3: Portability
+──────────────────────
+Run on any machine:
+  ├─ Windows ✓
+  ├─ Mac ✓
+  ├─ Linux ✓
+  ├─ Cloud (AWS, Google Cloud, Azure) ✓
+  └─ Heroku, DigitalOcean, etc. ✓
+
+Same image, any platform!
+
+BENEFIT 4: Scalability
+──────────────────────
+Easy to scale up:
+  ├─ Need more capacity?
+  ├─ Run multiple container instances
+  ├─ Load balance between them
+  └─ Handle 1000x more users!
+
+BENEFIT 5: Simplified Deployment
+────────────────────────────────
+Just ship one image:
+  ├─ Instead of complex manual setup
+  ├─ No dependency list to manage
+  ├─ No version conflicts
+  ├─ No "install this library" instructions
+
+One command: docker run
+And your app is running!
+
+BENEFIT 6: Development vs Production Parity
+─────────────────────────────────────────────
+Same setup in development and production:
+  ├─ No surprises when deploying
+  ├─ Test exactly what will run
+  ├─ Debug production-like issues locally
+
+BENEFIT 7: Microservices
+───────────────────────
+Build modular applications:
+  ├─ Each service in own container
+  ├─ Services communicate via network
+  ├─ Easy to update individual services
+  ├─ Scale specific services independently
+
+================================================================================
+📚 PART 4: WHAT IS DOCKER COMPOSE?
+================================================================================
+
+SIMPLE DEFINITION:
+──────────────────
+Docker Compose is a tool that lets you define and run multiple Docker
+containers as a single application using a YAML file.
+
+PROBLEM DOCKER COMPOSE SOLVES:
+────────────────────────────────
+
+Without Docker Compose:
+  Command: docker build -t my-app .
+  Command: docker run -d -p 5000:5000 -e ENV=prod my-app
+  Command: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=pwd postgres
+  Command: (create network and connect containers manually)
+  Command: (manage volumes, environment variables, etc.)
+  └─ Long, complex, error-prone!
+
+With Docker Compose:
+  Command: docker-compose up
+  └─ One simple command!
+  └─ Everything defined in YAML file
+  └─ All containers start in correct order
+  └─ All networking configured automatically
+
+ANALOGY: CONDUCTING AN ORCHESTRA
+──────────────────────────────────
+
+Without Docker Compose:
+  ├─ Violinist plays at 2:00 PM
+  ├─ Cellist plays at 2:05 PM
+  ├─ Drummer plays at 2:10 PM
+  ├─ Conductor sends individual emails
+  └─ Result: Chaos! Everyone plays at different times!
+
+With Docker Compose:
+  ├─ Define in score: who plays when
+  ├─ Conductor waves baton: "Start!"
+  ├─ All musicians start together
+  ├─ Everything synchronized
+  └─ Result: Beautiful harmony!
+
+YOUR PROJECT WITH DOCKER COMPOSE:
+───────────────────────────────────
+
+Components:
+  ├─ Flask Web App (your app)
+  ├─ Port 5000 (accessible from browser)
+  └─ Volumes (code/model files)
+
+Single docker-compose.yml file defines:
+  ├─ Build the Flask app
+  ├─ Set environment variables
+  ├─ Map port 5000
+  ├─ Mount volumes
+  ├─ Set restart policy
+  └─ Start everything with: docker-compose up
+
+================================================================================
+📚 PART 5: INSTALLATION & SETUP
+================================================================================
+
+INSTALL DOCKER:
+────────────────
+
+Windows:
+
+Step 1: Visit: https://www.docker.com/products/docker-desktop/
+Step 2: Click "Download for Windows"
+Step 3: Run installer (Docker-Desktop-Installer.exe)
+Step 4: Follow installation wizard (use defaults)
+Step 5: Restart computer
+Step 6: Docker Desktop starts automatically
+
+Verify installation:
+  Command: docker --version
+  Expected output: Docker version 20.x.x
+
+Mac:
+
+Step 1: Visit: https://www.docker.com/products/docker-desktop/
+Step 2: Click "Download for Mac"
+Step 3: Choose: Apple Silicon or Intel
+Step 4: Run installer
+Step 5: Move Docker.app to Applications folder
+Step 6: Launch Docker from Applications
+
+Verify:
+  Command: docker --version
+
+Linux:
+
+Step 1: Install from package manager:
+  $ sudo apt-get install docker.io    (Ubuntu/Debian)
+  $ sudo yum install docker           (CentOS/RHEL)
+  $ sudo pacman -S docker             (Arch)
+
+Step 2: Start Docker service:
+  $ sudo systemctl start docker
+  $ sudo systemctl enable docker
+
+Step 3: Verify:
+  $ docker --version
+
+INSTALL DOCKER COMPOSE:
+────────────────────────
+
+Usually comes with Docker Desktop (Windows/Mac)
+
+Check if installed:
+  Command: docker-compose --version
+
+If not installed (Linux):
+  $ sudo curl -L "https://github.com/docker/compose/releases/latest" \
+    -o /usr/local/bin/docker-compose
+  $ sudo chmod +x /usr/local/bin/docker-compose
+
+================================================================================
+📚 PART 6: DOCKER COMMANDS - COMPLETE REFERENCE
+================================================================================
+
+IMAGE COMMANDS:
+────────────────
+
+1. Build an image
+   Command: docker build -t image-name:tag .
+   Example: docker build -t wine-app:latest .
+   └─ Creates image from Dockerfile in current directory
+
+2. List all images
+   Command: docker images
+   └─ Shows all images on your machine
+
+3. Pull image from registry
+   Command: docker pull image-name:tag
+   Example: docker pull python:3.7.16
+   └─ Downloads image from Docker Hub
+
+4. Remove image
+   Command: docker rmi image-name:tag
+   └─ Deletes image (must not be running)
+
+5. Tag an image
+   Command: docker tag source:tag username/repo:tag
+   └─ Rename or push to registry
+
+6. Push image to registry
+   Command: docker push username/repo:tag
+   └─ Upload to Docker Hub or other registry
+
+CONTAINER COMMANDS:
+────────────────────
+
+1. Run a container
+   Command: docker run -d -p 5000:5000 --name app-container image-name
+   Flags:
+     -d = detached (background)
+     -p = port mapping (host:container)
+     --name = container name
+     -e = environment variable
+     -v = volume mount
+     -it = interactive terminal
+
+2. List running containers
+   Command: docker ps
+   └─ Shows currently running containers
+
+3. List all containers
+   Command: docker ps -a
+   └─ Shows all containers (running and stopped)
+
+4. Stop container
+   Command: docker stop container-name
+   └─ Gracefully stops the container
+
+5. Start container
+   Command: docker start container-name
+   └─ Restart a stopped container
+
+6. Remove container
+   Command: docker rm container-name
+   └─ Deletes container (must be stopped)
+
+7. View container logs
+   Command: docker logs container-name
+   └─ Shows console output
+
+8. Stream container logs
+   Command: docker logs -f container-name
+   └─ Like: tail -f (live updates)
+
+9. Execute command in container
+   Command: docker exec -it container-name bash
+   └─ Opens shell inside running container
+
+10. Access container shell
+    Command: docker exec -it container-name /bin/bash
+    └─ Useful for debugging
+
+DOCKER COMPOSE COMMANDS:
+─────────────────────────
+
+1. Start containers
+   Command: docker-compose up
+   └─ Builds and starts all containers
+   └─ Shows logs in terminal
+
+2. Start in background
+   Command: docker-compose up -d
+   └─ Starts in detached mode
+   └─ Returns to prompt immediately
+
+3. Stop containers
+   Command: docker-compose down
+   └─ Stops and removes all containers
+
+4. View logs
+   Command: docker-compose logs -f
+   └─ Stream logs from all services
+
+5. Rebuild images
+   Command: docker-compose build
+   └─ Rebuilds images without running
+
+6. Execute command
+   Command: docker-compose exec web bash
+   └─ Opens shell in 'web' service
+
+7. View running services
+   Command: docker-compose ps
+   └─ Shows status of all services
+
+8. Scale service
+   Command: docker-compose up -d --scale web=3
+   └─ Runs 3 instances of 'web' service
+
+================================================================================
+📚 PART 7: USING DOCKER WITH YOUR WINE APP
+================================================================================
+
+STEP 1: PROJECT STRUCTURE
+──────────────────────────
+
+Your_Project/
+├── Dockerfile ✅
+├── docker-compose.yml ✅
+├── app.py ✅
+├── requirements.txt ✅
+├── runtime.txt ✅
+├── Procfile ✅
+├── templates/
+│   └── home.html ✅
+├── WinePricePredictionP1/
+│   ├── randomforest_model.pkl ✅
+│   └── rf_features.pkl ✅
+└── .dockerignore (optional)
+
+STEP 2: CREATE .dockerignore FILE (OPTIONAL BUT RECOMMENDED)
+──────────────────────────────────────────────────────────────
+
+Like .gitignore, but for Docker
+
+Create file: .dockerignore
+
+Content:
+  venvwp/
+  __pycache__/
+  *.pyc
+  *.pyo
+  *.pyd
+  .Python
+  .git
+  .gitignore
+  .dockerignore
+  README.md
+  *.db
+  *.sqlite3
+
+STEP 3: BUILD THE DOCKER IMAGE
+───────────────────────────────
+
+Command: docker build -t wine-app:latest .
+
+Output:
+  ├─ Step 1/8 : FROM python:3.7.16-slim
+  ├─ Step 2/8 : WORKDIR /app
+  ├─ Step 3/8 : COPY requirements.txt .
+  ├─ Step 4/8 : RUN pip install -r requirements.txt
+  ├─ ...
+  └─ Successfully built abc123def456
+
+Verify image created:
+  Command: docker images
+  Output: wine-app | latest | abc123def456 | ...
+
+STEP 4: RUN WITH DOCKER COMPOSE
+─────────────────────────────────
+
+Command: docker-compose up
+
+Watch output:
+  ├─ Building web...
+  ├─ Successfully tagged your-project_web:latest
+  ├─ Creating your-project_web_1...
+  ├─ Attaching to your-project_web_1
+  ├─ [2024-03-31 10:00:00] [12345] [INFO] Listening at: http://0.0.0.0:5000
+  └─ Logs will stream continuously
+
+STEP 5: ACCESS YOUR APP
+────────────────────────
+
+Open browser:
+  URL: http://localhost:5000/
+
+You should see:
+  ✅ Beautiful Lebanese-themed form
+  ✅ 11 input fields
+  ✅ 🇱🇧 Flag emoji
+  ✅ Fully functional!
+
+STEP 6: TEST PREDICTIONS
+──────────────────────────
+
+Fill form with test data:
+  ├─ Alcohol (log): 2.5
+  ├─ Volatile Acidity: 0.8
+  ├─ ... (other fields)
+  └─ Click "🔮 Predict Price"
+
+Result appears:
+  ✅ Prediction successful!
+  ✅ Price: $45.73 (or similar)
+
+STEP 7: VIEW LOGS
+──────────────────
+
+In new terminal:
+  Command: docker-compose logs -f
+
+Or while running in terminal, press Ctrl+C to stop
+
+STEP 8: STOP CONTAINERS
+────────────────────────
+
+Command: docker-compose down
+
+Output:
+  ├─ Stopping your-project_web_1...
+  ├─ Removing your-project_web_1...
+  ├─ Removing network your-project_default
+  └─ Done!
+
+================================================================================
+📚 PART 8: DOCKERFILE EXPLAINED LINE BY LINE
+================================================================================
+
+Line 1: FROM python:3.7.16-slim
+──────────────────────────────
+What: Use Python 3.7.16 as base image
+Why: 
+  ├─ Includes Python 3.7.16 pre-installed
+  ├─ Has pip package manager
+  ├─ Slim = lightweight (~150MB vs 900MB+)
+Optional: Change to:
+  ├─ python:3.7.16-alpine (even smaller, ~50MB)
+  ├─ python:3.8.16-slim (different Python version)
+  └─ python:3.11-slim (modern Python)
+
+Line 3: WORKDIR /app
+──────────────────
+What: Create and enter /app directory
+Why:
+  ├─ All commands run in this directory
+  ├─ Like "cd /app" in terminal
+  └─ Clean organization in container
+
+Line 6: COPY requirements.txt .
+────────────────────────────
+What: Copy requirements.txt from your machine to container
+Why:
+  ├─ Container needs to know what packages to install
+  ├─ Must copy BEFORE running pip install
+  └─ Separates dependency installation from code
+
+Line 9: RUN pip install -r requirements.txt
+───────────────────────────────────────────
+What: Install all Python packages
+Why:
+  ├─ pip = Python package manager
+  ├─ -r = read from file (requirements.txt)
+  ├─ --no-cache-dir = saves space in image
+  └─ All dependencies now in container
+
+Line 12-19: COPY app files
+──────────────────────────
+What: Copy your application files
+Includes:
+  ├─ app.py (Flask application)
+  ├─ templates/ (HTML files)
+  ├─ WinePricePredictionP1/ (pickle files)
+  └─ Configuration files
+
+Line 21: EXPOSE 5000
+───────────────────
+What: Document that container uses port 5000
+Note:
+  ├─ Doesn't actually open the port
+  ├─ Port opened by docker-compose.yml
+  └─ Good for documentation
+
+Line 24: ENV PYTHONUNBUFFERED=1
+────────────────────────────────
+What: Don't buffer Python output
+Why:
+  ├─ See logs immediately (not delayed)
+  ├─ Useful for debugging
+  └─ Good practice for production
+
+Line 27: ENV FLASK_ENV=production
+────────────────────────────────
+What: Run Flask in production mode
+Effect:
+  ├─ Debug mode OFF
+  ├─ Silent errors
+  ├─ Production ready
+  └─ Use debug mode only locally
+
+Line 30: CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+──────────────────────────────────────────────────────────────
+What: command to run when container starts
+Breakdown:
+  ├─ gunicorn = production web server
+  ├─ --bind 0.0.0.0:5000 = listen on all IPs, port 5000
+  ├─ app:app = Flask app object from app.py
+  └─ Similar to: python app.py (but production)
+
+================================================================================
+📚 PART 9: DOCKER COMPOSE EXPLAINED
+================================================================================
+
+version: '3.8'
+──────────────
+Version of docker-compose file format
+  └─ 3.8 = compatible with Docker 19.03+
+
+services:
+──────────
+Container definitions start here
+Can have multiple services (web, database, redis, etc.)
+
+web:
+────
+Service name (same as docker-compose logs -f web)
+
+build:
+  context: .
+  dockerfile: Dockerfile
+──────────────────────────
+Build instructions:
+  ├─ context: . = build from current directory
+  ├─ dockerfile: Dockerfile = use this Dockerfile
+  └─ Alternative: image: python:3.7.16 (use existing image)
+
+ports:
+  - "5000:5000"
+─────────────
+Port mapping:
+  ├─ <host_port>:<container_port>
+  ├─ 5000:5000 = machine port 5000 → container port 5000
+  ├─ Can also: "8000:5000" (machine 8000 → container 5000)
+  └─ Allows: http://localhost:5000/ access
+
+volumes:
+  - .:/app
+  - /app/__pycache__
+─────────────────────
+File sharing:
+  ├─ .:/app = machine . → container /app
+  ├─ /app/__pycache__ = don't sync this folders
+  └─ Changes on host appear instantly in container
+
+environment:
+  - FLASK_ENV=production
+  - PYTHONUNBUFFERED=1
+────────────────────────
+Environment variables in container
+  ├─ Can also: key: value format
+  ├─ Accessed in app: os.getenv('FLASK_ENV')
+  └─ Useful for: config, secrets, settings
+
+restart: unless-stopped
+────────────────────────
+Restart policy:
+  ├─ unless-stopped = restart always (unless you stop it)
+  ├─ always = always restart
+  ├─ on-failure = restart only if crashes
+  ├─ no = don't restart
+  └─ Good for production reliability
+
+labels:
+────────
+Metadata tags (optional):
+  └─ Used for organization and documentation
+
+================================================================================
+📚 PART 10: DOCKER BEST PRACTICES
+================================================================================
+
+BEST PRACTICE 1: Use Specific Base Image Versions
+─────────────────────────────────────────────────
+❌ WRONG:
+  FROM python
+  └─ Uses latest Python (could be any version!)
+
+✅ CORRECT:
+  FROM python:3.7.16-slim
+  └─ Specific version, reproducible
+
+BEST PRACTICE 2: Use .dockerignore
+────────────────────────────────────
+Exclude unnecessary files:
+  └─ venvwp/, __pycache__, .git, etc.
+  └─ Reduces image size
+  └─ Speeds up build
+
+BEST PRACTICE 3: Minimize Layer Size
+──────────────────────────────────────
+❌ WRONG:
+  RUN apt-get update
+  RUN apt-get install -y curl
+  RUN apt-get install -y wget
+
+✅ CORRECT:
+  RUN apt-get update && apt-get install -y curl wget
+  └─ Uses one layer, smaller image
+
+BEST PRACTICE 4: Keep App Directory Clean
+────────────────────────────────────────────
+✅ DO:
+  ├─ Copy only necessary files
+  ├─ Use .dockerignore
+  ├─ Remove build artifacts
+  └─ Keep image lean
+
+BEST PRACTICE 5: Use Specific Package Versions
+──────────────────────────────────────────────
+❌ WRONG:
+  Flask
+  pandas
+
+✅ CORRECT:
+  Flask>=1.1.2
+  pandas>=1.1.0
+
+✓ EVEN BETTER:
+  Flask==1.1.4
+  pandas==1.1.5
+  └─ Exact version, zero ambiguity
+
+BEST PRACTICE 6: Security
+────────────────────────
+❌️  DON'T:
+  ├─ Run as root
+  ├─ Use secrets in Dockerfile
+  ├─ Expose sensitive information
+  └─ Use images from untrusted sources
+
+✅ DO:
+  ├─ Run as non-root user
+  ├─ Use environment variables for secrets
+  ├─ Use official base images
+  ├─ Scan images for vulnerabilities
+
+BEST PRACTICE 7: Logging
+────────────────────────
+✅ DO:
+  ├─ Log to stdout/stderr (not files)
+  ├─ Docker captures these automatically
+  ├─ View with: docker logs
+  └─ Works with log aggregation services
+
+BEST PRACTICE 8: Health Checks
+───────────────────────────────
+✅ DO:
+  HEALTHCHECK CMD curl --fail http://localhost:5000/ || exit 1
+  └─ Tells Docker if app is healthy
+  └─ Useful for orchestration (Kubernetes, Swarm)
+
+BEST PRACTICE 9: Environment-Specific Configuration
+─────────────────────────────────────────────────────
+✅ DO:
+  Use different docker-compose files:
+  ├─ docker-compose.yml (development)
+  ├─ docker-compose.prod.yml (production)
+  ├─ docker-compose.test.yml (testing)
+  └─ Override settings per environment
+
+BEST PRACTICE 10: Tag Images Properly
+──────────────────────────────────────
+Format: repository:tag
+Examples:
+  ├─ wine-app:latest (latest version)
+  ├─ wine-app:v1.0 (release version)
+  ├─ wine-app:staging (staging version)
+  ├─ wine-app:dev (development)
+  └─ username/wine-app:latest (for registry)
+
+================================================================================
+📚 PART 11: COMMON DOCKER PROBLEMS & SOLUTIONS
+================================================================================
+
+PROBLEM 1: "Cannot connect to Docker daemon"
+─────────────────────────────────────────────
+Cause: Docker not running
+Solution:
+  ├─ Windows/Mac: Start Docker Desktop app
+  ├─ Linux: sudo systemctl start docker
+  ├─ Check: docker ps
+
+PROBLEM 2: "Image not found"
+──────────────────────────
+Cause: Image doesn't exist or wrong name
+Solution:
+  ├─ List images: docker images
+  ├─ Build image: docker build -t wine-app .
+  ├─ Pull image: docker pull image-name
+
+PROBLEM 3: "Port already in use"
+──────────────────────
+Cause: Another container using port 5000
+Solution:
+  ├─ Find processes: docker ps
+  ├─ Stop container: docker stop container-name
+  ├─ Or change port: ports: - "8000:5000"
+
+PROBLEM 4: "Permission denied"
+────────────────────────────
+Cause: Running Docker without sudo (Linux)
+Solution:
+  ├─ Add user to docker group: sudo usermod -aG docker $USER
+  ├─ Restart terminal or reboot
+  ├─ Try again without sudo
+
+PROBLEM 5: "Disk space full"
+───────────────────────────
+Cause: Docker images/containers using space
+Solution:
+  ├─ Remove unused images: docker image prune
+  ├─ Remove unused containers: docker container prune
+  ├─ Remove all: docker system prune -a
+
+PROBLEM 6: "File not found in container"
+──────────────────────────────────────────
+Cause: File not copied in Dockerfile
+Solution:
+  ├─ Check: Dockerfile COPY instructions
+  ├─ Verify: files exist in current directory
+  ├─ Check: .dockerignore doesn't exclude needed files
+  ├─ Rebuild: docker build -t wine-app:latest .
+
+PROBLEM 7: "ModuleNotFoundError: No module named 'flask'"
+───────────────────────────────────────────────────────
+Cause: Package not installed in container
+Solution:
+  ├─ Add to requirements.txt
+  ├─ Rebuild: docker build -t wine-app .
+  ├─ Or add in Dockerfile: RUN pip install flask
+
+PROBLEM 8: Container exits immediately
+───────────────────────────────────────
+Cause: Process exits (app crashes)
+Solution:
+  ├─ View logs: docker logs container-name
+  ├─ Check Dockerfile CMD
+  ├─ Run interactively: docker run -it wine-app /bin/bash
+
+PROBLEM 9: Environment variables not working
+──────────────────────────────────────────
+Cause: Not set in docker-compose or Dockerfile
+Solution:
+  ├─ Add to docker-compose: environment: - VAR=value
+  ├─ Or Dockerfile: ENV VAR=value
+  ├─ Access in Python: os.getenv('VAR')
+
+PROBLEM 10: Slow Docker for Windows/Mac
+──────────────────────────────────────
+Cause: VM overhead
+Solution:
+  ├─ Upgrade to latest Docker Desktop
+  ├─ Allocate more CPU/RAM in settings
+  ├─ Use WSL 2 (Windows Subsystem for Linux 2)
+  ├─ Move project to WSL directory (Windows)
+
+================================================================================
+📚 PART 12: COMPLETE WORKFLOW - STEP BY STEP
+================================================================================
+
+WORKFLOW: BUILD & RUN YOUR WINE APP IN DOCKER
+
+Step 1: Create project structure
+  ✓ Dockerfile created
+  ✓ docker-compose.yml created
+  ✓ app.py exists
+  ✓ requirements.txt exists
+
+Step 2: Create .dockerignore (optional)
+  Command: Create file named .dockerignore
+  Add contents shown earlier
+
+Step 3: Build Docker image
+  Command: docker build -t wine-app:latest .
+  Expected: "Successfully built abc123def456"
+
+Step 4: Run with Docker Compose
+  Command: docker-compose up
+  Wait for: "Listening at: http://0.0.0.0:5000"
+
+Step 5: Open browser
+  Visit: http://localhost:5000/
+
+Step 6: Test predictions
+  Fill form with test data
+  Click "Predict Price"
+  See result
+
+Step 7: View logs (in new terminal)
+  Command: docker-compose logs -f
+
+Step 8: Stop when done
+  Press Ctrl+C in terminal running docker-compose
+  Or in another terminal: docker-compose down
+
+DONE! 🎉
+
+================================================================================
+📚 PART 13: DEPLOYING DOCKER IMAGE TO HEROKU
+================================================================================
+
+Heroku accepts Docker containers!
+
+STEP 1: Install Heroku CLI
+────────────────────────
+Visit: https://devcenter.heroku.com/articles/heroku-cli
+Download and install
+
+STEP 2: Login to Heroku
+───────────────────────
+Command: heroku login -i
+Enter email and password
+
+STEP 3: Create Heroku app
+─────────────────────────
+Command: heroku create your-app-name
+
+STEP 4: Set Heroku container registry
+─────────────────────────────────────
+Command: heroku container:login
+Authenticates with Heroku Docker registry
+
+STEP 5: Push Docker image to Heroku
+──────────────────────────────────
+Command: heroku container:push web -a your-app-name
+└─ Builds and uploads image to Heroku
+
+STEP 6: Release on Heroku
+──────────────────────────
+Command: heroku container:release web -a your-app-name
+└─ Makes image live
+
+STEP 7: View live app
+─────────────────────
+Visit: https://your-app-name.herokuapp.com/
+
+View logs:
+Command: heroku logs --tail -a your-app-name
+
+DONE! App deployed! 🎉
+
+================================================================================
+📚 SUMMARY - DOCKER & DOCKER COMPOSE
+================================================================================
+
+WHAT IS DOCKER?
+  └─ Containerization platform that packages apps with dependencies
+
+KEY CONCEPTS:
+  ├─ Image = Blueprint
+  ├─ Container = Running instance
+  ├─ Dockerfile = Instructions to build image
+  ├─ Registry = Repository of images
+  ├─ Volumes = Persistent storage
+  └─ Networks = Container communication
+
+WHY USE DOCKER?
+  ├─ Consistency (works everywhere)
+  ├─ Isolation (no conflicts)
+  ├─ Portability (any platform)
+  ├─ Scalability (run multiple instances)
+  ├─ Simplification (one image, one command)
+  └─ Development/Production parity
+
+WHAT IS DOCKER COMPOSE?
+  └─ Tool to define & run multi-container apps in YAML
+
+WHY USE DOCKER COMPOSE?
+  ├─ Simplified setup (one file)
+  ├─ Multi-container orchestration
+  ├─ Environment configuration
+  ├─ Service dependencies
+  └─ Local development that mimics production
+
+YOUR PROJECT SETUP:
+  ├─ Dockerfile (build instructions)
+  ├─ docker-compose.yml (running configuration)
+  ├─ .dockerignore (exclude files)
+  └─ Ready to deploy anywhere!
+
+QUICK COMMANDS:
+  ├─ docker build -t wine-app .
+  ├─ docker-compose up
+  ├─ docker-compose down
+  ├─ docker logs container-name
+  ├─ docker-compose logs -f
+  └─ docker ps
+
+DEPLOYMENT OPTIONS:
+  ├─ Local (development)
+  ├─ Docker Hub
+  ├─ GitHub Container Registry
+  ├─ AWS (ECR)
+  ├─ Google Cloud
+  ├─ Heroku (with Docker)
+  ├─ DigitalOcean
+  ├─ Azure Container Registry
+  └─ Kubernetes
+
+NOW YOU'RE A DOCKER EXPERT! 🐳
+
+================================================================================
+🚀 NEXT STEPS FOR YOUR PROJECT
+================================================================================
+
+1. ✅ Dockerfile created
+2. ✅ docker-compose.yml created
+3. → Test locally: docker-compose up
+4. → Verify at http://localhost:5000/
+5. → Deploy to Heroku (optional)
+6. → Use docker build for distribution
+
+AMAZING! Now your Wine Price Prediction app is:
+  ✓ Containerized
+  ✓ Production-ready
+  ✓ Easily deployable
+  ✓ Scalable
+  ✓ Professional
+
+Good luck! 🍷🐳🇱🇧
+
+================================================================================
+
+
+# =====================================================================
+# docker-compose.yml - Container Orchestration Configuration
+# =====================================================================
+# This file defines how to build and run Docker containers
+# Simplifies running multi-container applications with one command
+# =====================================================================
+
+# Use Docker Compose version 3.8 (stable, widely supported)
+version: '3.8'
+
+# =====================================================================
+# SERVICES SECTION
+# =====================================================================
+# Define all services/containers that make up your application
+
+services:
+  
+  # ===== WEB SERVICE (Your Flask App) =====
+  web:
+    
+    # Build instructions - creates Docker image from Dockerfile
+    build:
+      # Build from current directory where Dockerfile is located
+      context: .
+      # Uses the Dockerfile in current directory
+      dockerfile: Dockerfile
+    
+    # ===== PORT MAPPING =====
+    # Map ports: <host_port>:<container_port>
+    # Host (your machine) port 5000 -> Container port 5000
+    # Allows you to access the app at http://localhost:5000
+    ports:
+      - "5000:5000"
+    
+    # ===== VOLUME MOUNTING (Optional) =====
+    # Shares folders between host and container
+    # <host_path>:<container_path>
+    # Changes to files on your machine are instantly available in container
+    volumes:
+      # Mount current directory to /app in container
+      # Useful for development (live code changes)
+      - .:/app
+      # Don't mount Python cache (avoid conflicts)
+      - /app/__pycache__
+    
+    # ===== ENVIRONMENT VARIABLES =====
+    # Set environment variables inside the container
+    environment:
+      # Flask runs in production mode
+      - FLASK_ENV=production
+      # Python outputs logs immediately (useful for debugging)
+      - PYTHONUNBUFFERED=1
+      # Your Flask secret key (change this!)
+      - FLASK_SECRET_KEY=your-secret-key-here
+    
+    # ===== DEPENDENCY CONTROL =====
+    # Command to run when container starts
+    # Overrides CMD from Dockerfile (optional)
+    # command:
+    #   - gunicorn
+    #   - --bind
+    #   - 0.0.0.0:5000
+    #   - app:app
+    
+    # ===== RESTART POLICY =====
+    # Automatically restart container if it crashes
+    # Policy: always, on-failure, unless-stopped, no
+    restart: unless-stopped
+    
+    # ===== LABELS (Metadata) =====
+    # Labels for organizing containers (optional)
+    labels:
+      - "com.example.wine-app.version=1.0"
+      - "com.example.wine-app.description=Wine Price Prediction"
+
+# =====================================================================
+# NETWORKS SECTION (Optional)
+# =====================================================================
+# Define custom networks for container communication
+# networks:
+#   wine-network:
+#     driver: bridge
+
+# =====================================================================
+# VOLUMES SECTION (Optional)
+# =====================================================================
+# Define named volumes for persistent data
+# volumes:
+#   wine-data:
+#     driver: local
+
+# =====================================================================
+# SUMMARY
+# =====================================================================
+# 
+# This docker-compose.yml:
+# 1. Defines 'web' service
+# 2. Builds from Dockerfile
+# 3. Maps port 5000
+# 4. Creates volumes for development
+# 5. Sets environment variables
+# 6. Auto-restarts if crashes
+# 
+# To use:
+#   docker-compose up              (start containers)
+#   docker-compose down            (stop containers)
+#   docker-compose build           (rebuild image)
+#   docker-compose logs -f         (view logs)
+# 
+# =====================================================================

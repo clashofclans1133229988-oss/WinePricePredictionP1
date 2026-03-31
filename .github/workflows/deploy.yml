@@ -1,0 +1,285 @@
+# ============================================================================
+# GITHUB ACTIONS - DEPLOY TO HEROKU WORKFLOW
+# ============================================================================
+# Purpose: Deploy Docker container to Heroku after Docker build succeeds
+# Triggers:
+#   - Push to main branch
+#   - Manual trigger (workflow_dispatch)
+#   - Docker build completion
+# Dependencies:
+#   - Docker workflow must pass first (image built)
+# ============================================================================
+
+name: Deploy to Heroku
+
+# Define when this workflow runs
+on:
+  # Run on push to main (after Docker build)
+  push:
+    branches:
+      - main
+
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+  # Trigger from Docker workflow completion
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types:
+      - completed
+    branches:
+      - main
+
+# Define jobs
+jobs:
+  # Check if previous workflow succeeded
+  check-docker-build:
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.should-deploy }}
+    steps:
+      - name: Check Docker build status
+        id: check
+        run: |
+          # If Docker workflow failed, don't deploy
+          if [ "${{ github.event.workflow_run.conclusion }}" == "failure" ]; then
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          else
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          fi
+
+  # Job: Deploy to Heroku
+  deploy:
+    # Only deploy if Docker build succeeded
+    needs: check-docker-build
+    if: needs.check-docker-build.outputs.should-deploy == 'true' || github.event_name == 'push'
+    
+    runs-on: ubuntu-latest
+    
+    environment:
+      # Define environment for this deployment
+      name: production
+      # URL to access deployed app (optional)
+      url: https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          # Full history needed for Heroku
+          fetch-depth: 0
+
+      # Step 2: Display deployment info
+      - name: Display deployment information
+        run: |
+          echo "========================================"
+          echo "DEPLOYING TO HEROKU"
+          echo "========================================"
+          echo "App Name: ${{ secrets.HEROKU_APP_NAME }}"
+          echo "Environment: ${{ github.event.inputs.environment || 'production' }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.event_name }}"
+
+      # Step 3: Deploy to Heroku using Git
+      - name: Deploy to Heroku via Git
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          # Heroku API key from GitHub secrets
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          # Heroku app name
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          # Heroku email
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          # Use Docker (tell Heroku to use Dockerfile)
+          usedocker: true
+          # Docker image name (optional, uses app name by default)
+          docker_image_name: "wine-price-app"
+          # Build Docker image on Heroku (not use pre-built)
+          docker_build_args: "--build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        # This pushes code to Heroku
+        # Heroku builds Docker image and deploys it
+
+      # Step 4: Wait for deployment to finish
+      - name: Wait for Heroku deployment
+        run: |
+          sleep 30
+          echo "⏳ Waiting for Heroku to deploy..."
+          for i in {1..60}; do
+            if curl -f "https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/" > /dev/null 2>&1; then
+              echo "✅ Heroku app is up and running!"
+              exit 0
+            fi
+            echo "  Attempt $i/60: App not ready yet, waiting..."
+            sleep 5
+          done
+          echo "⚠️ Deployment completed but app not responding yet. Check Heroku logs."
+        continue-on-error: true
+
+      # Step 5: Health check - verify app is working
+      - name: Health check - Test app endpoint
+        run: |
+          echo "🏥 Running health checks..."
+          
+          # Test home page
+          echo "Testing home page..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Home page working (HTTP 200)"
+          else
+            echo "⚠️ Home page returned HTTP $STATUS"
+          fi
+          
+          # Test API endpoint with sample data
+          echo "Testing prediction API..."
+          RESPONSE=$(curl -s -X POST \
+            "https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com/predict_api" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "Alcohol_log": 2.5,
+              "Volatile_Acidity_log_boxcox": 0.8,
+              "Citric_Acid": 0.3,
+              "Chlorides": 0.05,
+              "pH": 3.2,
+              "Sulfites": 15,
+              "Alcohol_to_Acidity": 5.0,
+              "Volatile_to_Fixed_Acidity": 0.4,
+              "Alcohol_x_CitricAcid": 0.75,
+              "ResidualSugar_x_Alcohol": 2.0,
+              "pH_squared": 10.24
+            }')
+          
+          echo "API Response: $RESPONSE"
+          
+          # Check if response contains prediction
+          if echo "$RESPONSE" | grep -q "prediction"; then
+            echo "✅ API working correctly"
+          else
+            echo "⚠️ API response unexpected"
+          fi
+        continue-on-error: true
+
+      # Step 6: View Heroku logs
+      - name: Display Heroku logs
+        if: always()
+        run: |
+          # Install Heroku CLI
+          curl https://cli-assets.heroku.com/install.sh | sh
+          
+          # Login to Heroku
+          echo "Getting last 20 lines of Heroku logs..."
+          heroku logs --app=${{ secrets.HEROKU_APP_NAME }} --num=20 \
+            || echo "Could not retrieve logs (this is okay, logs available on Heroku dashboard)"
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        continue-on-error: true
+
+      # Step 7: Create deployment summary
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## ✅ Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "Your wine price prediction app is now live! 🍷🚀" >> $GITHUB_STEP_SUMMARY
+
+      # Step 8: Failure notification
+      - name: Deployment failed notification
+        if: failure()
+        run: |
+          echo "❌ Deployment to Heroku failed!"
+          echo "Check Heroku dashboard for details: https://dashboard.heroku.com/apps/${{ secrets.HEROKU_APP_NAME }}"
+          echo "Or view Action logs above for error messages"
+
+      # Step 9: Send Slack notification (optional)
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "🍷 Wine Price Prediction App - ${{ job.status == 'success' && '✅ Deployment Successful' || '❌ Deployment Failed' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Wine Price Prediction App*\n${{ job.status == 'success' && '✅ Deployment Successful' || '❌ Deployment Failed' }}\n<https://${{ secrets.HEROKU_APP_NAME }}.herokuapp.com|App URL>"
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Branch: ${{ github.ref_name }} | Commit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                    }
+                  ]
+                }
+              ]
+            }
+        continue-on-error: true
+        # Optional: Send notification to Slack
+
+# ============================================================================
+# WORKFLOW EXPLANATION:
+#
+# When triggered (push to main):
+#   1. Check Docker build succeeded (if triggered by workflow_run)
+#   2. Checkout code
+#   3. Display deployment info
+#   4. Deploy to Heroku using Git push + Docker
+#   5. Wait 30 seconds for Heroku to start
+#   6. Run health checks (test home page & API)
+#   7. Display Heroku logs
+#   8. Create deployment summary
+#   9. Send Slack notification (if configured)
+#
+# WHAT YOU NEED IN GITHUB SECRETS:
+#   - HEROKU_API_KEY: Your Heroku API key
+#   - HEROKU_EMAIL: Your Heroku account email
+#   - HEROKU_APP_NAME: Your Heroku app name (e.g., wine-price-app)
+#   - SLACK_WEBHOOK: (optional) Slack webhook for notifications
+#
+# HEROKU SETUP REQUIRED:
+#   1. Create Heroku account (https://www.heroku.com)
+#   2. Create Heroku app (e.g., wine-price-app)
+#   3. Get Heroku API key (Account Settings → API Key)
+#   4. Enable Docker support (Heroku Deployment Center)
+#
+# HOW IT WORKS:
+#   - Pushes code to Heroku Git remote
+#   - Heroku reads Dockerfile
+#   - Builds Docker image on Heroku
+#   - Deploys container
+#   - Restarts app
+#
+# TOTAL TIME: ~3-5 minutes
+#
+# AFTER DEPLOYMENT:
+#   - App live at https://your-app-name.herokuapp.com
+#   - New features instantly available
+#   - Users can use app immediately
+# ============================================================================

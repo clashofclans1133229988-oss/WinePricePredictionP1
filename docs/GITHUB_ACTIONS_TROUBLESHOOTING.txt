@@ -1,0 +1,741 @@
+================================================================================
+🔧 GITHUB ACTIONS TROUBLESHOOTING & DEBUGGING GUIDE
+================================================================================
+
+COMPLETE GUIDE TO FIXING WORKFLOW PROBLEMS
+
+This guide helps you debug when workflows fail or behave unexpectedly.
+
+================================================================================
+📚 PART 1: HOW TO DEBUG A FAILED WORKFLOW
+================================================================================
+
+STEP 1: IDENTIFY WHICH WORKFLOW FAILED
+───────────────────────────────────────
+
+On GitHub:
+  1. Visit your repository
+  2. Click "Actions" tab
+  3. Look for red ❌ indicator on a workflow
+  4. Click the failed workflow to open it
+
+STEP 2: IDENTIFY WHICH JOB FAILED
+──────────────────────────────────
+
+In the workflow run:
+  1. You see list of jobs
+  2. Find the one with red ❌
+  3. Click on it to expand
+
+Example:
+  ✅ check-docker-build (passed)
+  ❌ deploy (failed)  ← This one failed
+
+STEP 3: IDENTIFY WHICH STEP FAILED
+──────────────────────────────────
+
+In the job:
+  1. Scroll through steps
+  2. Find red ❌ step
+  3. Click "..." menu to expand
+  4. Full error logs appear
+
+Example steps for deploy job:
+  ✅ Checkout code
+  ✅ Display deployment information
+  ✅ Deploy to Heroku via Git
+  ❌ Wait for Heroku deployment  ← This failed
+
+STEP 4: READ THE ERROR MESSAGE
+──────────────────────────────
+
+Click the failed step to expand full logs:
+  ├─ Read error message carefully
+  ├─ Google the error if unclear
+  ├─ Check secret name matches
+  ├─ Verify credential values
+  └─ Look for clues in logs
+
+STEP 5: TAKE ACTION
+───────────────────
+
+Use the error message to:
+  ├─ Fix the code
+  ├─ Update secrets
+  ├─ Fix workflow YAML
+  └─ Try again
+
+================================================================================
+📚 PART 2: COMMON WORKFLOW FAILURES & FIXES
+================================================================================
+
+FAILURE 1: "Workflow file is invalid"
+──────────────────────────────────────
+
+Error message:
+  YAML parsing error
+  Unexpected character
+
+Cause:
+  ├─ YAML syntax error in workflow
+  ├─ Wrong indentation
+  ├─ Invalid characters
+  ├─ Unclosed quotes
+
+How to fix:
+  1. Watch out for YAML indentation (use 2 spaces)
+  2. Check for special characters (< > & |)
+  3. Use YAML validator: https://www.yamllint.com/
+  4. Copy workflow content to validator
+  5. Fix errors shown
+  6. Replace workflow file content
+  7. Push again
+
+Example YAML errors:
+  ❌ Wrong: name: Docker Build       (not indented)
+  ✅ Right:   name: Docker Build     (proper indentation)
+
+  ❌ Wrong: run: echo "test'         (unclosed quote)
+  ✅ Right: run: echo "test"         (closed quote)
+
+FAILURE 2: "Secret is empty"
+──────────────────────────
+
+Error message:
+  Docker username is empty
+  Unable to retrieve secret
+
+Cause:
+  ├─ Secret not added to GitHub
+  ├─ Secret name misspelled in workflow
+  ├─ Workflow file uses wrong name
+
+How to fix:
+  1. Check GitHub secrets: Settings → Secrets and variables
+  2. Verify secret exact name (case-sensitive!):
+     ✅ DOCKER_USERNAME (correct)
+     ❌ docker_username (wrong - case matters)
+     ❌ DOCKER_USER (wrong - must be DOCKER_USERNAME)
+  3. Verify workflow uses same name:
+     ${{ secrets.DOCKER_USERNAME }}
+  4. If name wrong, update workflow file
+  5. Push changes
+  6. Re-run workflow
+
+FAILURE 3: "Authentication failed with Docker Hub"
+───────────────────────────────────────────────────
+
+Error message:
+  Error response from daemon: unauthorized
+  authentication required for pushing to registry
+
+Cause:
+  ├─ Wrong Docker username
+  ├─ Wrong Docker password/token
+  ├─ Token expired
+  ├─ Token lacks permissions
+
+How to fix:
+
+Option 1: Verify credentials
+  1. Log in to Docker Hub manually
+  2. Verify username is correct
+  3. If token, verify it hasn't expired
+  4. If password that's the problem → create token instead
+
+Option 2: Recreate Docker Hub token
+  1. Go to https://hub.docker.com/settings/security
+  2. Delete old token
+  3. Click "Generate new token"
+  4. Name: "github-actions"
+  5. Permissions: Read, Write
+  6. Copy token
+  7. Update GitHub secret DOCKER_PASSWORD
+  8. Re-run workflow
+
+Option 3: Use password instead of token (not recommended)
+  1. Docker username in GitHub: your-username
+  2. Docker password: your-actual-docker-password (NOT recommended for security)
+  3. Not recommended because password is more at risk
+
+FAILURE 4: "Cannot find Heroku app"
+───────────────────────────────────
+
+Error message:
+  Couldn't find that app
+  No such app exists
+
+Cause:
+  ├─ App does not exist on Heroku
+  ├─ Wrong app name in GitHub secret
+  ├─ Typo in app name
+  ├─ App deleted
+
+How to fix:
+  1. Go to https://dashboard.heroku.com
+  2. Check if app exists in list
+  3. Copy exact app name (case-sensitive)
+  4. Update HEROKU_APP_NAME in GitHub secrets
+  5. Or create new Heroku app:
+     a. Dashboard → Create new app
+     b. Pick app name (e.g., wine-price-app)
+     c. Add to GitHub secrets
+  6. Re-run workflow
+
+FAILURE 5: "Invalid Heroku API key"
+───────────────────────────────────
+
+Error message:
+  Unauthorized: Invalid API key
+  Authentication failed
+
+Cause:
+  ├─ API key expired
+  ├─ Wrong API key value
+  ├─ API key regenerated
+
+How to fix:
+  1. Go to https://dashboard.heroku.com
+  2. Click profile → Account settings
+  3. Scroll to API Key
+  4. Regenerate it (delete old, create new)
+  5. Copy new key
+  6. Update GitHub secret HEROKU_API_KEY
+  7. Re-run workflow
+
+FAILURE 6: "Tests failed"
+─────────────────────────
+
+Error message:
+  pytest: FAILED tests/test_app.py::test_home
+  AssertionError: expected 200 but got 404
+
+Cause:
+  ├─ Your code has a bug
+  ├─ Test is poorly written
+  ├─ Missing dependencies
+  ├─ Flask app won't load
+
+How to fix:
+  1. Read the test output carefully
+  2. Look for which test failed
+  3. Look for assertion that failed
+  4. Look for expected vs actual value
+  5. Fix your code locally
+  6. Run test locally: pytest
+  7. Get test passing locally
+  8. Push code
+  9. Workflow auto-tests again
+
+FAILURE 7: "Heroku deployment timeout"
+────────────────────────────────────────
+
+Error message:
+  Timeout waiting for app to start
+  Request timed out
+
+Cause:
+  ├─ App taking too long to start
+  ├─ Heroku resources insufficient
+  ├─ App crashes on startup
+  ├─ Network issue
+
+How to fix:
+  1. Go to Heroku dashboard
+  2. Click on your app
+  3. Click "Resources" tab
+  4. Check if app has dyno (free dyno is slow)
+  5. Check "Activity" tab for errors
+  6. View app logs: click "View logs" button
+  7. Look for error messages
+  8. Fix code if needed
+  9. Push again to trigger deployment
+
+FAILURE 8: "Cannot checkout code"
+──────────────────────────────────
+
+Error message:
+  fatal: repository not found
+  Error: Repository clone failed
+
+Cause:
+  ├─ Workflow in wrong repository
+  ├─ Repository private but no access token
+  ├─ Weird GitHub issue
+
+How to fix:
+  1. Verify you're in correct repository
+  2. Verify workflow file syntax is correct
+  3. Set checkout with correct branch:
+     uses: actions/checkout@v2
+     with:
+       ref: main
+
+FAILURE 9: "Linting errors - flake8"
+──────────────────────────────────────
+
+Error message:
+  E999 SyntaxError: invalid syntax
+  app.py:42:5
+
+Cause:
+  ├─ Python syntax error
+  ├─ Code formatting issues
+  ├─ Missing colons/parentheses
+
+How to fix:
+  1. Error shows file and line number (app.py:42)
+  2. Open app.py, go to line 42
+  3. Look for syntax issues:
+     ├─ Missing colon after if/for/while
+     ├─ Mismatched brackets/parentheses
+     ├─ Indentation wrong
+     ├─ Invalid characters
+  4. Fix the error
+  5. Re-run: python -m py_compile app.py (test locally)
+  6. Push and workflow auto-checks
+
+FAILURE 10: "All checks passed but pull request blocked"
+─────────────────────────────────────────────────────────
+
+Cause:
+  ├─ Branch protection requires approvals
+  ├─ Requires specific reviewers
+  ├─ Requires up-to-date branch
+
+How to fix:
+  1. Ask code reviewer to approve PR
+  2. Ensure PR is based on latest main:
+     a. Click "Update branch" button on PR
+     b. Merge latest main into your branch
+  3. Verify all branch protection rules met:
+     a. Settings → Branches → Protection rules
+     b. Check each required item
+     c. Do required actions
+
+================================================================================
+📚 PART 3: VIEWING WORKFLOW LOGS IN DETAIL
+================================================================================
+
+WHERE ARE LOGS STORED?
+──────────────────────
+
+Logs are in GitHub Actions → Workflow run
+
+HOW TO ACCESS LOGS:
+───────────────────
+
+1. Go to your repository
+2. Click "Actions" tab
+3. Click the failed workflow
+4. Click the job (deploy, test, build, etc)
+5. Scroll through steps
+6. Click step to expand full logs
+
+WHAT DO LOGS SHOW?
+──────────────────
+
+Each step has:
+  ├─ Step name
+  ├─ Duration (how long it ran)
+  ├─ Output messages
+  ├─ Error messages (if failed)
+  ├─ Command run (run step)
+  └─ Environment info
+
+FINDING KEY INFORMATION IN LOGS:
+─────────────────────────────────
+
+Key phrases to search for:
+  ├─ "ERROR" (errors)
+  ├─ "FAILED" (test failures)
+  ├─ "407" (authentication issues)
+  ├─ "401" (permission denied)
+  ├─ "404" (not found)
+  ├─ "500" (server error)
+  ├─ "timeout" (too slow)
+  └─ "cannot find" (missing file/command)
+
+Use browser search: Ctrl+F (Windows) or Cmd+F (Mac)
+  └─ Search for "error", "fail", etc.
+
+DOWNLOADING LOGS:
+──────────────────
+
+To download full logs:
+  1. Workflow run page
+  2. Top right: click "..." menu
+  3. Click "Download logs"
+  4. ZIP file downloaded
+  5. Extract and open logs
+
+================================================================================
+📚 PART 4: DEBUGGING WORKFLOW EXECUTION
+================================================================================
+
+ENABLE DEBUG LOGGING:
+────────────────────
+
+To see more detailed logs:
+
+Add to workflow file (near top):
+
+  env:
+    ACTIONS_STEP_DEBUG: true
+
+Then run workflow again.
+
+This shows:
+  ├─ Variable values (before they're hidden)
+  ├─ Command environment
+  ├─ More detail on each step
+  ├─ Useful for debugging
+
+MANUAL TEST WORKFLOW:
+─────────────────────
+
+Test workflow locally before pushing:
+
+1. Install act tool: https://github.com/nektos/act
+2. In your project directory:
+   $ act push -l
+   (This lists workflows that would run)
+   
+3. Run a workflow locally:
+   $ act workflow_dispatch
+
+This helps catch errors before pushing!
+
+DRY RUN BEFORE DEPLOYING:
+─────────────────────────
+
+Before deploying to production:
+  1. Create test branch
+  2. Make tiny change
+  3. Push and watch workflow
+  4. Let all workflows pass
+  5. Then merge to main
+
+This catches issues before using real credentials!
+
+RERUN FAILED WORKFLOW:
+─────────────────────
+
+To test fix without pushing code:
+  1. Click failed workflow
+  2. Click "Re-run jobs" button
+  3. Choose "Re-run all jobs"
+  4. Workflow runs again with same code/commit
+
+This is useful for fixing transient issues (network, etc)
+
+================================================================================
+📚 PART 5: COMMON MYSTERIES EXPLAINED
+================================================================================
+
+MYSTERY 1: Workflow ran but isn't showing on my branch
+───────────────────────────────────────────────────────
+
+Why:
+  ├─ Workflow triggered but not visible
+  ├─ Might not be associated with commit
+
+Solution:
+  └─ Go to Actions tab → see all visible anyway
+
+MYSTERY 2: Same code works locally but fails in workflow
+────────────────────────────────────────────────────────
+
+Why:
+  ├─ Runner (machine) is different
+  ├─ Environment variables different
+  ├─ Dependencies different versions
+  ├─ Permissions different
+  ├─ Secrets not available locally
+
+Solution:
+  ├─ Test with exact same Python version
+  ├─ Test with exact same dependencies
+  ├─ Test environment variables
+  ├─ Run linter locally (flake8, pylint)
+  └─ Commit small changes, watch workflow
+
+MYSTERY 3: Workflow keeps timing out
+─────────────────────────────────────
+
+Why:
+  ├─ Job taking too long
+  ├─ Network slow
+  ├─ Process stuck
+  ├─ Missing timeout specification
+
+Solution:
+  ├─ Increase timeout (add to job):
+       timeout-minutes: 10
+  ├─ Optimize slow steps
+  ├─ Run tests in parallel
+  ├─ Use caching
+  └─ Check internet connection
+
+MYSTERY 4: Deployment succeeded but app isn't working
+──────────────────────────────────────────────────────
+
+Why:
+  ├─ Workflow said success but actually failed
+  ├─ App deployed but doesn't start
+  ├─ Configuration issue
+  ├─ Environment variable missing
+
+Solution:
+  1. Check Heroku dashboard
+  2. Click app → View logs
+  3. Look for error messages
+  4. Check environment variables set
+  5. Restart app if needed
+
+MYSTERY 5: Secret works locally but not in workflow
+──────────────────────────────────────────────────
+
+Why:
+  ├─ Workflow uses different secret name
+  ├─ Secret not added to GitHub
+  ├─ Secret name typo (case-sensitive!)
+
+Solution:
+  1. Verify GitHub secret exists
+  2. Use exact secret name in workflow
+  3. Use syntax: ${{ secrets.NAME }}
+  4. Verify no typos
+
+================================================================================
+📚 PART 6: DEBUGGING DOCKER ISSUES
+================================================================================
+
+DOCKER BUILD FAILS IN WORKFLOW:
+────────────────────────────────
+
+Common issues:
+  ├─ Dockerfile has errors
+  ├─ Files not copied properly
+  ├─ pip install fails (missing in requirements.txt)
+  ├─ Wrong base image
+
+How to debug:
+  1. Build locally: docker build -t test .
+  2. Watch for error message
+  3. Fix Dockerfile
+  4. Test locally before pushing
+
+DOCKER PUSH FAILS:
+──────────────────
+
+Common issues:
+  ├─ Not logged in to Docker Hub
+  ├─ Wrong credentials in secrets
+  ├─ Image doesn't exist (build failed)
+  ├─ Token revoked
+
+How to debug:
+  1. Verify DOCKER_USERNAME is correct
+  2. Verify DOCKER_PASSWORD is fresh token
+  3. Test locally: docker login (use token not password)
+  4. Push manually: docker push username/image:tag
+  5. If works locally, troubleshoot workflow secrets
+
+DOCKER IMAGE TOO LARGE:
+───────────────────────
+
+Takes forever to push, causes timeouts.
+
+How to fix:
+  1. Use slim base image: python:3.7.16-slim (not python:3.7)
+  2. Multi-stage builds (only in final image)
+  3. Clean up after install: && rm -rf /var/cache/apt/*
+  4. Use .dockerignore to exclude files
+
+Example Dockerfile optimization:
+  FROM python:3.7.16-slim    ← Use slim
+  WORKDIR /app
+  COPY requirements.txt .
+  RUN pip install --no-cache-dir \     ← No cache
+      -r requirements.txt
+  COPY . .
+  CMD ["gunicorn", ...]
+
+================================================================================
+📚 PART 7: DEBUGGING HEROKU DEPLOYMENT
+================================================================================
+
+HEROKU DEPLOYMENT FAILS:
+────────────────────────
+
+Check Heroku app directly:
+  1. Go to https://dashboard.heroku.com
+  2. Click your app
+  3. Click "Activity" tab
+  4. See deployment history
+  5. Look for errors
+
+View app logs:
+  1. Click "More" button
+  2. Click "View logs"
+  3. Look for error messages
+
+Common Heroku errors:
+  ├─ Build failed: Check Dockerfile
+  ├─ App crashed: Check Heroku logs
+  ├─ H12 timeout: App too slow to start
+  ├─ H13 connection error: Port not configured
+  └─ R10 boot timeout: App won't start
+
+HEROKU LOGS SHOW ERRORS:
+─────────────────────────
+
+View logs two ways:
+
+Option 1: Heroku dashboard
+  1. App page → More → View logs
+  2. Shows live logs
+  3. Look for ERROR or WARN messages
+
+Option 2: Heroku CLI (in terminal)
+  $ heroku logs --app=your-app-name --tail
+  └─ Shows live updates
+
+Fix based on error:
+  ├─ ModuleNotFoundError: Add to requirements.txt
+  ├─ Port issues: Ensure app listens on port from env
+  ├─ Configuration: Set config vars (Environment)
+  └─ Code errors: Fix code, push again
+
+RESTART HEROKU APP:
+───────────────────
+
+If app stuck:
+  1. Heroku dashboard → app → More
+  2. Click "Restart all dynos"
+  3. App restarts
+  4. See if works now
+
+================================================================================
+📚 PART 8: STEP-BY-STEP DEBUGGING PROCESS
+================================================================================
+
+WHEN WORKFLOW FAILS - USE THIS PROCESS:
+
+Step 1: IDENTIFY
+  └─ Which workflow failed? (CI/Docker/Deploy?)
+
+Step 2: LOCATE
+  └─ Which job failed? How many jobs were there?
+
+Step 3: PINPOINT
+  └─ Which step failed? What step number?
+
+Step 4: ANALYZE
+  └─ Read error message carefully. What does it say?
+
+Step 5: SEARCH
+  └─ Google the error message. Has others had it?
+
+Step 6: HYPOTHESIZE
+  └─ What could cause this? Bad secret? Missing file? Syntax error?
+
+Step 7: CHECK
+  └─ Did you add secrets? File in right place? Syntax correct?
+
+Step 8: FIX
+  └─ Update code, secrets, or workflow based on finding
+
+Step 9: TEST LOCALLY
+  ├─ If code issue: test locally with same Python version
+  ├─ If Docker: build locally `docker build -t test .`
+  ├─ If secret: verify value is correct
+  └─ Ensure working before pushing
+
+Step 10: PUSH
+  └─ Push fix to feature branch
+
+Step 11: MONITOR
+  └─ Watch workflow run in Actions tab
+
+Step 12: VERIFY
+  ├─ Does it pass now?
+  ├─ Did you solve the problem?
+  └─ If not, repeat from Step 4
+
+Step 13: CELEBRATE
+  └─ Green checkmark! ✅
+
+================================================================================
+📚 PART 9: GETTING HELP
+================================================================================
+
+RESOURCES FOR DEBUGGING:
+────────────────────────
+
+1. GitHub Actions Documentation
+   └─ https://docs.github.com/en/actions
+
+2. Workflow Syntax Reference
+   └─ https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+
+3. GitHub Actions Troubleshooting
+   └─ https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/about-workflow-runs
+
+4. Stack Overflow
+   └─ Search "[workflow error message] github actions"
+
+5. GitHub Community Discussions
+   └─ https://github.com/orgs/community/discussions/categories/actions
+
+WHEN ASKING FOR HELP:
+─────────────────────
+
+Include:
+  ✓ Error message (full text)
+  ✓ Workflow file content
+  ✓ Which step failed
+  ✓ What you tried to fix it
+  ✓ Workflow logs (sanitized of secrets)
+  ✓ Your OS (Windows, Mac, Linux)
+
+DON'T include:
+  ✗ Any secrets or API keys
+  ✗ Personal information
+  ✗ Passwords
+
+================================================================================
+🎯 QUICK TROUBLESHOOTING CHECKLIST
+================================================================================
+
+When workflow fails, check these in order:
+
+☐ Workflow file syntax valid? (Use YAML validator)
+☐ All secrets added to GitHub? (Settings → Secrets)
+☐ Secret names match workflow? (exact spelling, case-sensitive)
+☐ Secret values correct? (try manually, verify not expired)
+☐ Workflow file in .github/workflows/? (correct directory)
+☐ GitHub Actions enabled? (Settings → Actions)
+☐ Code works locally? (test before pushing)
+☐ Dependencies in requirements.txt? (all needed packages)
+☐ Python version correct? (3.7.16 for this project)
+☐ Dockerfile builds locally? (docker build -t test .)
+
+If still stuck:
+  1. Read error message word-by-word
+  2. Google exact error
+  3. Check Stack Overflow
+  4. Review workflow step-by-step
+  5. Test each part locally
+
+================================================================================
+
+REMEMBER: Debugging workflows is normal! Even professionals need to debug.
+
+The error messages are your friends - they tell you what's wrong.
+Read them carefully, take your time, and you'll figure it out! 💪
+
+Good luck! 🚀
+
+================================================================================

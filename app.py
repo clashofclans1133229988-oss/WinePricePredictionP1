@@ -47,7 +47,7 @@ app = Flask(__name__)
 
 # Open the pickle file in READ BINARY mode ('rb' = read binary)
 # This file contains our trained RandomForest model saved earlier
-with open('randomforest_model.pkl', 'rb') as model_file:
+with open('models/randomforest_model.pkl', 'rb') as model_file:
     # pickle.load() deserializes the binary file back into a Python object
     # Now we have our trained model ready to make predictions!
     trained_model = pickle.load(model_file)
@@ -64,7 +64,7 @@ with open('randomforest_model.pkl', 'rb') as model_file:
 # Example: If we trained with [Alcohol, pH, Acidity]
 # and send [pH, Acidity, Alcohol], predictions will be wrong!
 
-with open('rf_features.pkl', 'rb') as features_file:
+with open('models/rf_features.pkl', 'rb') as features_file:
     feature_names = pickle.load(features_file)
 
 print(f"✅ Model loaded successfully!")

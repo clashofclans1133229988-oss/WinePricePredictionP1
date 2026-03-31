@@ -1,0 +1,216 @@
+# ============================================================================
+# GITHUB ACTIONS - FLY.IO DEPLOYMENT WORKFLOW (Alternative to Railway)
+# ============================================================================
+# Purpose: Automatically deploy to Fly.io on every push to main
+# Triggers: Push to main branch
+# Time: ~3-5 minutes
+# ============================================================================
+
+name: Deploy to Fly.io
+
+# When to run
+on:
+  # Deploy on every push to main (after CI/Docker passes)
+  push:
+    branches:
+      - main
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+# Jobs
+jobs:
+  # Deploy to Fly.io
+  deploy:
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: production
+      url: https://${{ secrets.FLY_APP_NAME }}.fly.dev
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+        # Need full history for accurate deployment
+
+      # Step 2: Display deployment info
+      - name: Display deployment information
+        run: |
+          echo "========================================"
+          echo "DEPLOYING TO FLY.IO"
+          echo "========================================"
+          echo "App Name: ${{ secrets.FLY_APP_NAME }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Time: $(date)"
+
+      # Step 3: Setup Fly CLI
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        # This installs fly command-line tool
+
+      # Step 4: Deploy to Fly.io
+      - name: Deploy to Fly.io
+        run: |
+          # Deploy using fly CLI
+          # fly deploy reads Dockerfile and fly.toml
+          fly deploy --remote-only
+        env:
+          # Fly API token from GitHub secrets
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        # This does:
+        # 1. Builds Docker image on Fly servers
+        # 2. Pushes to Fly registry
+        # 3. Updates running app
+        # 4. Performs health checks
+        # 5. Keeps old version if new fails
+
+      # Step 5: Display app URL
+      - name: Display app information
+        run: |
+          echo "✅ Deployment complete!"
+          echo ""
+          echo "Your app is live at:"
+          echo "https://${{ secrets.FLY_APP_NAME }}.fly.dev"
+          echo ""
+          echo "View logs: fly logs --app=${{ secrets.FLY_APP_NAME }}"
+          echo "SSH into app: fly ssh console --app=${{ secrets.FLY_APP_NAME }}"
+
+      # Step 6: Health check
+      - name: Health check - Test app endpoint
+        run: |
+          echo "🏥 Running health checks..."
+          
+          # Test home page
+          echo "Testing home page..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ secrets.FLY_APP_NAME }}.fly.dev/")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Home page responding (HTTP 200)"
+          else
+            echo "⚠️ Home page returned HTTP $STATUS"
+          fi
+          
+          # Test API with sample data
+          echo "Testing prediction API..."
+          RESPONSE=$(curl -s -X POST \
+            "https://${{ secrets.FLY_APP_NAME }}.fly.dev/predict_api" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "Alcohol_log": 2.5,
+              "Volatile_Acidity_log_boxcox": 0.8,
+              "Citric_Acid": 0.3,
+              "Chlorides": 0.05,
+              "pH": 3.2,
+              "Sulfites": 15,
+              "Alcohol_to_Acidity": 5.0,
+              "Volatile_to_Fixed_Acidity": 0.4,
+              "Alcohol_x_CitricAcid": 0.75,
+              "ResidualSugar_x_Alcohol": 2.0,
+              "pH_squared": 10.24
+            }')
+          
+          echo "API Response: $RESPONSE"
+          
+          if echo "$RESPONSE" | grep -q "prediction"; then
+            echo "✅ API working correctly"
+          else
+            echo "⚠️ API response unexpected"
+          fi
+        continue-on-error: true
+
+      # Step 7: Create deployment summary
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## ✅ Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** https://${{ secrets.FLY_APP_NAME }}.fly.dev" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your app is now live! Share the link with your boss! 🚀" >> $GITHUB_STEP_SUMMARY
+
+      # Step 8: Failure notification
+      - name: Deployment failed
+        if: failure()
+        run: |
+          echo "❌ Deployment to Fly.io failed!"
+          echo ""
+          echo "View logs:"
+          echo "  $ fly logs --app=${{ secrets.FLY_APP_NAME }}"
+          echo ""
+          echo "Check Fly dashboard:"
+          echo "  https://fly.io/apps/${{ secrets.FLY_APP_NAME }}"
+
+# ============================================================================
+# WORKFLOW SUMMARY:
+#
+# This workflow handles complete deployment to Fly.io:
+#   1. Checkout code from GitHub
+#   2. Setup fly CLI tool
+#   3. Deploy using `fly deploy` command
+#   4. Fly builds Docker image on its servers
+#   5. Updates running app
+#   6. Performs health checks
+#   7. Creates deployment summary
+#
+# GITHUB SECRETS NEEDED:
+#   - FLY_API_TOKEN: Your Fly.io API token
+#   - FLY_APP_NAME: Your Fly.io app name
+#
+# HOW TO CREATE SECRETS:
+#
+#   FLY_API_TOKEN:
+#     1. Log into fly.io
+#     2. Run: fly tokens create deploy
+#     3. Copy token
+#     4. Add to GitHub Secrets
+#
+#   FLY_APP_NAME:
+#     1. Log into fly.io
+#     2. Create app: fly launch
+#     3. Copy app name (shown in prompt)
+#     4. Add to GitHub Secrets
+#
+# WORKFLOW TRIGGERS:
+#   - Every push to main branch
+#   - Manual trigger (Actions tab → Run Workflow)
+#
+# TOTAL TIME: ~5 minutes
+#   - Checkout: 10s
+#   - Build Docker: 2-3 min
+#   - Deploy: 1-2 min
+#   - Health checks: 30s
+#
+# WHAT'S DEPLOYED:
+#   - Your Flask app (from app.py)
+#   - Your templates (from templates/)
+#   - Your models (from WinePricePredictionP1/)
+#   - All dependencies (from requirements.txt)
+#
+# APP RUNS ON:
+#   - Fly.io infrastructure (global, reliable)
+#   - Docker container (reproducible)
+#   - Public URL: https://your-app-name.fly.dev
+#
+# SHARING WITH BOSS:
+#   - Give URL: https://your-app-name.fly.dev
+#   - Works from anywhere
+#   - No setup needed for boss
+#   - Professional appearance
+#
+# ============================================================================

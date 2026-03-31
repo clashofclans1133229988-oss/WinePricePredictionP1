@@ -1,0 +1,203 @@
+# ============================================================================
+# GITHUB ACTIONS - DOCKER BUILD AND PUSH WORKFLOW
+# ============================================================================
+# Purpose: Build Docker image and push to Docker Hub registry
+# Triggers:
+#   - Push to main branch (develop new builds)
+#   - Tagged commits (version releases)
+# Dependencies:
+#   - CI workflow must pass first (tests)
+# ============================================================================
+
+name: Build and Push Docker Image
+
+# Define when this workflow runs
+on:
+  # Run on push events
+  push:
+    branches:
+      - main                    # Run on main branch pushes
+    tags:
+      - 'v*'                    # Run on version tags (v1.0.0, v1.0.1, etc)
+      - 'release-*'             # Run on release tags
+
+# Environment variables for Docker
+env:
+  REGISTRY: docker.io           # Docker Hub registry
+  IMAGE_NAME: wine-price-app    # Image name on Docker Hub
+
+# Define jobs
+jobs:
+  # Job: Build and push Docker image
+  build:
+    # Run on Ubuntu latest
+    runs-on: ubuntu-latest
+    
+    # Need write permissions for GitHub Container Registry
+    permissions:
+      contents: read
+      packages: write
+
+    # Define steps
+    steps:
+      # Step 1: Check out code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          # Get full git history for proper versioning
+          fetch-depth: 0
+
+      # Step 2: Set up Docker Buildx (advanced Docker builder)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        # Buildx allows building multi-platform images
+        # and caching layers efficiently
+
+      # Step 3: Extract metadata for Docker image
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # Define image names
+          images: |
+            ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          # Define tags for the image
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+        # This creates meaningful tags like:
+        # - main (branch name)
+        # - v1.0.0 (version)
+        # - abc1234 (commit SHA)
+        # - latest (if main branch)
+
+      # Step 4: Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          # Registry (Docker Hub)
+          registry: ${{ env.REGISTRY }}
+          # Username from GitHub secret
+          username: ${{ secrets.DOCKER_USERNAME }}
+          # Password/token from GitHub secret
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        # This authenticates with Docker Hub
+        # Allows pushing images to your registry
+
+      # Step 5: Build and push Docker image
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          # Build context (current directory)
+          context: .
+          # Dockerfile path
+          file: ./Dockerfile
+          # Push to registry (not just build locally)
+          push: true
+          # Use tags from metadata step
+          tags: ${{ steps.meta.outputs.tags }}
+          # Use labels from metadata step
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache layers for faster builds
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:buildcache
+          # Save cache for next build
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+        # This does the actual Docker build and push
+        # Multi-stage build, layer caching, push to registry
+
+      # Step 6: Display image information
+      - name: Image digest
+        run: |
+          echo "Docker image pushed successfully! 🐳"
+          echo "Image: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+
+      # Step 7: Verify image can be pulled
+      - name: Verify Docker image
+        run: |
+          # Wait a moment for registry to update
+          sleep 10
+          # Try to pull the image we just pushed
+          docker pull "${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" || echo "⚠️ Image not yet available in registry"
+        continue-on-error: true
+
+      # Step 8: Security scan image (optional)
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          # Scan the image we just built
+          image-ref: "${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          # Output format
+          format: 'sarif'
+          # Save output to file
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+        # Vulnerability scanning (security check)
+
+      # Step 9: Upload security scan results
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          # SARIF file from Trivy
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+        # GitHub Security tab shows vulnerabilities
+
+      # Step 10: Trigger deployment workflow (optional)
+      - name: Trigger deployment workflow
+        if: github.ref == 'refs/heads/main'
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          # Event name to trigger
+          event-type: 'docker-build-complete'
+          # Can pass client payload to deployment workflow
+          client-payload: '{"image": "${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest"}'
+        continue-on-error: true
+        # This tells deployment workflow image is ready
+
+      # Step 11: Success notification
+      - name: Success - Docker image built and pushed ✅
+        if: success()
+        run: |
+          echo "🎉 Docker image successfully built and pushed!"
+          echo "Image available at:"
+          echo "${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}"
+
+# ============================================================================
+# WORKFLOW EXPLANATION:
+#
+# When triggered (push to main or tag created):
+#   1. Checkout code from GitHub
+#   2. Setup Docker Buildx (advanced builder)
+#   3. Extract version/branch info for tagging
+#   4. Login to Docker Hub using secrets
+#   5. Build Docker image from Dockerfile
+#   6. Push image to Docker Hub
+#   7. Scan image for security vulnerabilities
+#   8. Trigger deployment workflow
+#
+# WHAT YOU NEED IN GITHUB SECRETS:
+#   - DOCKER_USERNAME: Your Docker Hub username
+#   - DOCKER_PASSWORD: Your Docker Hub password or token
+#
+# EXAMPLE DOCKER HUB URL AFTER THIS WORKFLOW:
+#   docker.io/your-username/wine-price-app:latest
+#   docker.io/your-username/wine-price-app:v1.0.0
+#   docker.io/your-username/wine-price-app:main
+#   docker.io/your-username/wine-price-app:abc1234567
+#
+# TAGS EXPLAINED:
+#   - latest: Always latest version (main branch)
+#   - main: Branch name tag
+#   - v1.0.0: Semantic version tag (from git tags)
+#   - abc1234: Commit SHA for reproducibility
+#
+# TOTAL TIME: ~2-5 minutes (depends on image size)
+#
+# NEXT STEP:
+#   After this workflow succeeds, deployment workflow can trigger
+# ============================================================================
