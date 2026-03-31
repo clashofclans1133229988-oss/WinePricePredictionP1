@@ -1,0 +1,207 @@
+# =====================================================================
+# runtime.txt - HEROKU PYTHON VERSION SPECIFICATION
+# =====================================================================
+
+# WHAT IS THIS FILE?
+# ─────────────────
+# This file tells Heroku which Python version to use when running your app
+# Without this file, Heroku might use a different Python version than expected
+# 
+# WHY IS IT IMPORTANT?
+# ────────────────────
+# Different Python versions have different:
+#   • Syntax support
+#   • Built-in libraries
+#   • Performance
+#   • Package compatibility
+# 
+# If Heroku uses Python 3.11 but your code was built for Python 3.7,
+# you might get errors like:
+#   • ImportError: module not found
+#   • SyntaxError: invalid syntax
+#   • Version mismatch errors
+# 
+# By specifying runtime, you GUARANTEE consistency:
+#   • Your machine: Python 3.7.16 ✓
+#   • Heroku server: Same Python 3.7.16 ✓
+#   • No version conflicts! ✓
+
+python-3.7.16
+
+# =====================================================================
+# EXPLANATION OF THIS VERSION
+# =====================================================================
+# 
+# python-3.7.16
+#   ├─ python = Python programming language
+#   ├─ 3 = Major version (Python 3 - stable production version)
+#   ├─ 7 = Minor version (3.7 series)
+#   └─ 16 = Patch version (security updates and bug fixes)
+# 
+# YOUR PROJECT USES: Python 3.7.16
+#   • Your local machine has this version
+#   • Your virtual environment uses this version
+#   • This runtime file ensures Heroku matches!
+# 
+# =====================================================================
+# HEROKU SUPPORTED VERSIONS
+# =====================================================================
+# 
+# As of 2024, Heroku supports these Python versions:
+#   • python-3.7.16 ✓ (your project)
+#   • python-3.8.16
+#   • python-3.9.16
+#   • python-3.10.13
+#   • python-3.11.8
+#   • python-3.12.0
+# 
+# HOW TO CHECK YOUR LOCAL VERSION:
+#   Command: python --version
+#   Output: Python 3.7.16 (or similar)
+# 
+# =====================================================================
+# HOW HEROKU USES THIS FILE
+# =====================================================================
+# 
+# Deployment Process:
+# 
+# 1. You push your code to Heroku
+#    └─ Command: git push heroku main
+# 
+# 2. Heroku reads runtime.txt
+#    └─ Sees: python-3.7.16
+# 
+# 3. Heroku sets up Python 3.7.16 on server
+#    ├─ Downloads Python 3.7.16 binary
+#    ├─ Installs it on the server
+#    └─ Configures it as default
+# 
+# 4. Heroku reads requirements.txt
+#    ├─ Uses Python 3.7.16 to install packages
+#    ├─ pip (from Python 3.7.16) installs each package
+#    └─ All packages compatible with Python 3.7.16
+# 
+# 5. Heroku runs your Procfile
+#    └─ Command: gunicorn app:app (using Python 3.7.16)
+# 
+# =====================================================================
+# WHAT IF YOU OMIT runtime.txt?
+# =====================================================================
+# 
+# If you don't include runtime.txt:
+#   ├─ Heroku picks a DEFAULT Python version
+#   ├─ Usually the LATEST version available
+#   ├─ Example: Might be Python 3.12 instead of 3.7
+#   └─ Results in INCOMPATIBILITY! ❌
+# 
+# Problems that occur:
+#   • Your code uses old syntax not supported in Python 3.12
+#   • Packages installed for Python 3.7 fail in Python 3.12
+#   • Model pickle files might have format differences
+#   • App crashes on Heroku!
+# 
+# Solution: Always include runtime.txt! ✅
+# 
+# =====================================================================
+# REAL-WORLD EXAMPLE
+# =====================================================================
+# 
+# WITHOUT runtime.txt (WRONG):
+# ───────────────────────────
+# 1. Local: Your code in Python 3.7, uses old string formatting
+# 2. Heroku: Picks Python 3.12 (default)
+# 3. Result: Code has syntax errors in Python 3.12 ❌
+# 4. App crashes immediately
+# 
+# WITH runtime.txt (CORRECT):
+# ───────────────────────────
+# 1. Local: Your code in Python 3.7, uses old string formatting
+# 2. Heroku: Reads runtime.txt, uses Python 3.7
+# 3. Result: Same Python version everywhere ✓
+# 4. App works perfectly! ✅
+# 
+# =====================================================================
+# SHOULD YOU CHANGE THIS VERSION?
+# =====================================================================
+# 
+# NO! Keep python-3.7.16
+#   • Matches your local environment
+#   • Your code is written for Python 3.7
+#   • Your packages are compatible with 3.7
+#   • Changing it might break everything
+# 
+# Only change if:
+#   • You're upgrading your local Python version
+#   • You test everything locally first
+#   • You update all packages accordingly
+#   • You're absolutely sure about compatibility
+# 
+# =====================================================================
+# DEPLOYMENT CHECKLIST
+# =====================================================================
+# 
+# Before deploying to Heroku, verify:
+# 
+# ✅ runtime.txt exists
+# ✅ runtime.txt contains: python-3.7.16
+# ✅ Procfile exists
+# ✅ requirements.txt includes gunicorn>=20.1.0
+# ✅ .gitignore doesn't exclude pickle files
+# ✅ All files committed to Git
+# 
+# Then deploy:
+#   Command: git push heroku main
+#   Expected: Heroku uses Python 3.7.16 ✓
+# 
+# =====================================================================
+# TROUBLESHOOTING
+# =====================================================================
+# 
+# ERROR: "The 'python-3.7.16' runtime is not available"
+# ─────────────────────────────────────────────────────
+# Cause: Heroku might have discontinued Python 3.7 support
+# Solution: Upgrade to python-3.11.8 or python-3.12.0
+# 
+# ERROR: "RuntimeError: could not determine Python version"
+# ──────────────────────────────────────────────────────────
+# Cause: Invalid syntax in runtime.txt
+# Solution: Make sure format is: python-X.Y.Z (no spaces)
+# 
+# WARNING: "Ignoring runtime.txt"
+# ───────────────────────────────
+# Cause: Possible if file is named wrong (case-sensitive on Linux)
+# Solution: File must be named EXACTLY: runtime.txt
+# 
+# =====================================================================
+# SUMMARY
+# =====================================================================
+# 
+# runtime.txt Purpose:
+#   └─ Tell Heroku which Python version to use
+# 
+# Your Value:
+#   └─ python-3.7.16
+# 
+# Why Important:
+#   └─ Ensures consistency between local and Heroku
+# 
+# Without It:
+#   └─ Heroku might use different Python version → Errors!
+# 
+# With It:
+#   └─ Your app works identically everywhere! ✅
+# 
+# =====================================================================
+# USEFUL LINKS
+# =====================================================================
+# 
+# Heroku Python Support:
+#   https://devcenter.heroku.com/articles/python-support
+# 
+# Heroku Runtime Selection:
+#   https://devcenter.heroku.com/articles/runtime-selection
+# 
+# Python Versions:
+#   https://www.python.org/downloads/
+# 
+# =====================================================================
