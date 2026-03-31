@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lebanese Army Wine Price Prediction System</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* 
+            Lebanese Colors:
+            - Red: #CE1126 (Lebanon flag red)
+            - Green: #007A5E (Lebanon flag green)
+            - White: #FFFFFF
+            - Cedar Gold: #B8860B
+        */
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #CE1126 0%, #007A5E 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+            max-width: 900px;
+            width: 100%;
+            padding: 50px;
+            border-top: 8px solid #CE1126;
+            border-bottom: 8px solid #007A5E;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .flag-emoji {
+            font-size: 48px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-10deg); }
+        }
+        
+        h1 {
+            color: #CE1126;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .subtitle {
+            color: #007A5E;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .cedar-divider {
+            height: 4px;
+            background: linear-gradient(90deg, #CE1126 0%, #B8860B 50%, #007A5E 100%);
+            margin: 30px 0;
+            border-radius: 2px;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: #CE1126;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-icon {
+            font-size: 22px;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .label-name {
+            color: #007A5E;
+        }
+        
+        .label-hint {
+            color: #999;
+            font-size: 11px;
+            font-weight: normal;
+        }
+        
+        input[type="number"],
+        input[type="text"] {
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+        
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #CE1126;
+            background: white;
+            box-shadow: 0 0 8px rgba(206, 17, 38, 0.2);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 14px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-predict {
+            background: linear-gradient(135deg, #CE1126 0%, #a00a2a 100%);
+            color: white;
+            flex: 1;
+            max-width: 200px;
+            box-shadow: 0 8px 20px rgba(206, 17, 38, 0.3);
+        }
+        
+        .btn-predict:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(206, 17, 38, 0.4);
+        }
+        
+        .btn-predict:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+        
+        .btn-predict:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #007A5E 0%, #005a45 100%);
+            color: white;
+            max-width: 150px;
+            box-shadow: 0 8px 20px rgba(0, 122, 94, 0.3);
+        }
+        
+        .btn-reset:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0, 122, 94, 0.4);
+        }
+        
+        .btn-reset:active {
+            transform: translateY(-1px);
+        }
+        
+        .result-section {
+            display: none;
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f0f9f8 0%, #fff5e6 100%);
+            border-left: 6px solid #CE1126;
+            border-right: 6px solid #007A5E;
+            border-radius: 12px;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .result-section.show {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            color: #CE1126;
+        }
+        
+        .result-header h2 {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        .result-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .price-display {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid #B8860B;
+        }
+        
+        .price-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .price-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: #CE1126;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+        
+        .price-currency {
+            color: #007A5E;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .result-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .detail-item {
+            padding: 12px;
+            background: white;
+            border-left: 4px solid #007A5E;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .detail-label {
+            color: #666;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .error-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #ffebee;
+            border-left: 6px solid #CE1126;
+            border-radius: 8px;
+            color: #c62828;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .error-section.show {
+            display: block;
+        }
+        
+        .error-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #CE1126;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .button-with-loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .loading-spinner.show {
+            display: inline-block;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: #1565c0;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn-predict,
+            .btn-reset {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <div class="header-title">
+                <span class="flag-emoji">🇱🇧</span>
+                <div>
+                    <h1>Wine Price Prediction</h1>
+                </div>
+                <span class="flag-emoji">⚜️</span>
+            </div>
+            <p class="subtitle">Lebanese Army Wine Classification System</p>
+        </div>
+        
+        <div class="cedar-divider"></div>
+        
+        <!-- ===== INFO BOX ===== -->
+        <div class="info-box">
+            <strong>ℹ️ Instructions:</strong> Fill in all the wine characteristics below and click "Predict Price" to get the estimated wine price using our advanced Machine Learning model.
+        </div>
+        
+        <!-- ===== FORM ===== -->
+        <form id="predictionForm">
+            <!-- ===== ALCOHOL CONTENT ===== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="section-icon">🍷</span>
+                    Alcohol & Acidity Metrics
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Alcohol (log)</span>
+                            <span class="label-hint">Logarithmic alcohol%</span>
+                        </label>
+                        <input type="number" id="Alcohol_log" name="Alcohol_log" step="0.01" min="0" required placeholder="e.g., 2.5">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Volatile Acidity (Box-Cox)</span>
+                            <span class="label-hint">Transformed acidity</span>
+                        </label>
+                        <input type="number" id="Volatile_Acidity_log_boxcox" name="Volatile_Acidity_log_boxcox" step="0.01" min="0" required placeholder="e.g., 0.8">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Citric Acid</span>
+                            <span class="label-hint">Citric acid content (g/dm³)</span>
+                        </label>
+                        <input type="number" id="Citric_Acid" name="Citric_Acid" step="0.01" min="0" required placeholder="e.g., 0.3">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ===== CHEMICAL PROPERTIES ===== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="section-icon">⚗️</span>
+                    Chemical Properties
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Chlorides</span>
+                            <span class="label-hint">Salt content (g/dm³)</span>
+                        </label>
+                        <input type="number" id="Chlorides" name="Chlorides" step="0.01" min="0" required placeholder="e.g., 0.05">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">pH Level</span>
+                            <span class="label-hint">Acidity scale (0-14)</span>
+                        </label>
+                        <input type="number" id="pH" name="pH" step="0.01" min="0" max="14" required placeholder="e.g., 3.2">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Sulfites</span>
+                            <span class="label-hint">SO₂ content (mg/dm³)</span>
+                        </label>
+                        <input type="number" id="Sulfites" name="Sulfites" step="0.1" min="0" required placeholder="e.g., 15">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ===== RATIO & INTERACTION FEATURES ===== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="section-icon">📊</span>
+                    Advanced Features (Ratios & Interactions)
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Alcohol to Acidity Ratio</span>
+                            <span class="label-hint">Ratio feature</span>
+                        </label>
+                        <input type="number" id="Alcohol_to_Acidity" name="Alcohol_to_Acidity" step="0.01" min="0" required placeholder="e.g., 5.0">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Volatile to Fixed Acidity</span>
+                            <span class="label-hint">Ratio feature</span>
+                        </label>
+                        <input type="number" id="Volatile_to_Fixed_Acidity" name="Volatile_to_Fixed_Acidity" step="0.01" min="0" required placeholder="e.g., 0.4">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Alcohol × Citric Acid</span>
+                            <span class="label-hint">Interaction feature</span>
+                        </label>
+                        <input type="number" id="Alcohol_x_CitricAcid" name="Alcohol_x_CitricAcid" step="0.01" min="0" required placeholder="e.g., 0.75">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">Residual Sugar × Alcohol</span>
+                            <span class="label-hint">Interaction feature</span>
+                        </label>
+                        <input type="number" id="ResidualSugar_x_Alcohol" name="ResidualSugar_x_Alcohol" step="0.01" min="0" required placeholder="e.g., 2.0">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <span class="label-name">pH Squared</span>
+                            <span class="label-hint">pH² (polynomial feature)</span>
+                        </label>
+                        <input type="number" id="pH_squared" name="pH_squared" step="0.01" min="0" required placeholder="e.g., 10.24">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ===== BUTTONS ===== -->
+            <div class="button-group">
+                <button type="submit" class="btn-predict" id="predictBtn">
+                    <span class="button-with-loader">
+                        <span>🔮 Predict Price</span>
+                        <span class="loading-spinner" id="spinner"></span>
+                    </span>
+                </button>
+                <button type="reset" class="btn-reset">↻ Clear</button>
+            </div>
+        </form>
+        
+        <!-- ===== ERROR MESSAGE ===== -->
+        <div class="error-section" id="errorSection">
+            <div class="error-title">
+                <span>⚠️</span>
+                <span>Error</span>
+            </div>
+            <div id="errorMessage"></div>
+        </div>
+        
+        <!-- ===== RESULT SECTION ===== -->
+        <div class="result-section" id="resultSection">
+            <div class="result-header">
+                <span style="font-size: 28px;">✅</span>
+                <h2>Prediction Result</h2>
+            </div>
+            
+            <div class="result-content">
+                <div class="price-display">
+                    <div class="price-label">Estimated Wine Price</div>
+                    <div class="price-value" id="priceValue">$0.00</div>
+                    <div class="price-currency">Lebanon LBP / Wine Currency</div>
+                </div>
+                
+                <div class="result-details">
+                    <div class="detail-item">
+                        <div class="detail-label">
+                            <span>Prediction Status</span>
+                            <span class="detail-value" id="statusValue">Success ✓</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">
+                            <span>Model Used</span>
+                            <span class="detail-value">RandomForest Regressor</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">
+                            <span>Accuracy Level</span>
+                            <span class="detail-value">High Confidence</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== JAVASCRIPT - HANDLES FORM SUBMISSION AND API CALLS ===== -->
+    <script>
+        // Get the form element
+        const form = document.getElementById('predictionForm');
+        const predictBtn = document.getElementById('predictBtn');
+        const spinner = document.getElementById('spinner');
+        const resultSection = document.getElementById('resultSection');
+        const errorSection = document.getElementById('errorSection');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Add event listener for form submission
+        form.addEventListener('submit', async function(e) {
+            // Prevent default form behavior (page reload)
+            e.preventDefault();
+            
+            // Show loading spinner
+            spinner.classList.add('show');
+            predictBtn.disabled = true;
+            
+            // Hide previous results and errors
+            resultSection.classList.remove('show');
+            errorSection.classList.remove('show');
+            
+            try {
+                // ===== COLLECT FORM DATA =====
+                // Create FormData object from the form
+                const formData = new FormData(form);
+                
+                // Convert FormData to JSON object
+                const data = {};
+                formData.forEach((value, key) => {
+                    // Convert string to float
+                    data[key] = parseFloat(value);
+                });
+                
+                console.log('Sending data to API:', data);
+                
+                // ===== SEND REQUEST TO FLASK API =====
+                const response = await fetch('/predict_api', {
+                    method: 'POST',
+                    // Set header to tell server we're sending JSON
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    // Convert data to JSON string
+                    body: JSON.stringify(data)
+                });
+                
+                // Parse the response as JSON
+                const result = await response.json();
+                
+                console.log('Response from API:', result);
+                
+                // ===== CHECK IF PREDICTION WAS SUCCESSFUL =====
+                if (response.ok && result.success) {
+                    // Show result section
+                    resultSection.classList.add('show');
+                    
+                    // Update price display
+                    const priceValue = document.getElementById('priceValue');
+                    priceValue.textContent = result.price_formatted || `$${result.predicted_price.toFixed(2)}`;
+                    
+                    // Hide error section
+                    errorSection.classList.remove('show');
+                } else {
+                    // Handle API error
+                    throw new Error(result.error || 'Failed to get prediction');
+                }
+                
+            } catch (error) {
+                // Handle any error that occurred
+                console.error('Error:', error);
+                
+                // Show error section
+                errorSection.classList.add('show');
+                errorMessage.textContent = error.message || 'An error occurred while predicting. Please check your inputs and try again.';
+                
+                // Hide result section
+                resultSection.classList.remove('show');
+            } finally {
+                // Always hide loading spinner and enable button when done
+                spinner.classList.remove('show');
+                predictBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
